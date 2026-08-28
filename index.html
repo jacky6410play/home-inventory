@@ -24,8 +24,6 @@
     --accent:#2E6B6E;
     --accent-ink:#FFFFFF;
     --danger:#B23A34;
-    --warn:#D97706;
-    --success:#10B981;
     --radius:12px;
     --shadow:0 1px 2px rgba(32,36,28,.08), 0 4px 14px rgba(32,36,28,.07);
   }
@@ -42,17 +40,13 @@
   }
   #app{
     width:100%;
-    max-width:768px;
+    max-width:480px;
     min-height:100vh;
     background:var(--paper);
     position:relative;
     display:flex;
     flex-direction:column;
     padding-bottom:78px;
-    box-shadow: 0 0 25px rgba(0,0,0,.05);
-  }
-  @media(min-width: 768px){
-    #app{ max-width: 900px; border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
   }
   .mono{font-family:'Space Mono',monospace;}
 
@@ -89,7 +83,7 @@
   }
   select.filter-select{
     border:1px solid var(--line); background:var(--card); color:var(--ink);
-    border-radius:9px; padding:8px 8px; font-size:12px; font-family:'Inter',sans-serif; max-width:130px;
+    border-radius:9px; padding:8px 8px; font-size:12px; font-family:'Inter',sans-serif; max-width:110px;
   }
 
   main{flex:1; padding:14px 16px 8px;}
@@ -103,10 +97,9 @@
     display:flex; gap:12px; align-items:center;
     background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
     padding:10px; margin-bottom:10px; box-shadow:var(--shadow); cursor:pointer;
-    position:relative;
   }
   .item-thumb{
-    width:56px; height:56px; border-radius:8px; object-fit:contain; flex-shrink:0;
+    width:56px; height:56px; border-radius:8px; object-fit:cover; flex-shrink:0;
     background:var(--paper); border:1px solid var(--line);
     display:flex; align-items:center; justify-content:center; font-size:22px; color:var(--ink-faint);
   }
@@ -114,9 +107,6 @@
   .item-info .name{font-size:14.5px; font-weight:600; margin:0 0 3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .item-meta{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
   .qty-badge{font-size:11px; color:var(--ink-soft); font-family:'Space Mono',monospace;}
-  .status-badge{font-size:10px; padding:2px 6px; border-radius:6px; font-weight:600;}
-  .status-in{background:#ECFDF5; color:var(--success); border:1px solid #A7F3D0;}
-  .status-out{background:#FEF3C7; color:var(--warn); border:1px solid #FDE68A;}
 
   .tag-badge{
     display:inline-flex; align-items:center;
@@ -157,21 +147,20 @@
   .stat-card .label{font-size:12px; color:var(--ink-soft);}
 
   .fab{
-    position:fixed; right:calc(50% - 220px + 18px); bottom:88px; z-index:30;
+    position:fixed; right:calc(50% - 240px + 18px); bottom:88px; z-index:30;
     width:52px; height:52px; border-radius:50%;
     background:var(--accent); color:#fff; border:none;
     font-size:26px; box-shadow:0 4px 14px rgba(46,107,110,.4);
     display:flex; align-items:center; justify-content:center; cursor:pointer;
   }
-  @media (max-width:768px){ .fab{ right:18px; } }
+  @media (max-width:480px){ .fab{ right:18px; } }
 
   nav.bottom{
     position:fixed; bottom:0; left:50%; transform:translateX(-50%);
-    width:100%; max-width:768px; background:var(--card);
+    width:100%; max-width:480px; background:var(--card);
     border-top:1px solid var(--line); display:flex; z-index:25;
     padding:8px 0 calc(8px + env(safe-area-inset-bottom));
   }
-  @media(min-width: 768px){ nav.bottom{ max-width:900px; } }
   nav.bottom button{
     flex:1; background:none; border:none; display:flex; flex-direction:column; align-items:center; gap:3px;
     color:var(--ink-faint); font-size:10.5px; font-family:'Inter',sans-serif; cursor:pointer; padding:4px;
@@ -183,13 +172,11 @@
     position:fixed; inset:0; background:rgba(32,36,28,.42); z-index:50;
     display:flex; align-items:flex-end; justify-content:center;
   }
-  @media(min-width: 768px){ .overlay{ align-items:center; } }
   .sheet{
-    background:var(--paper); width:100%; max-width:540px; border-radius:18px 18px 0 0;
+    background:var(--paper); width:100%; max-width:480px; border-radius:18px 18px 0 0;
     max-height:92vh; overflow-y:auto; padding:18px 18px calc(18px + env(safe-area-inset-bottom));
     animation:slideup .18s ease-out;
   }
-  @media(min-width: 768px){ .sheet{ border-radius:18px; max-height:85vh; } }
   @keyframes slideup{from{transform:translateY(24px); opacity:.4;} to{transform:translateY(0); opacity:1;}}
   .sheet-header{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
   .sheet-header h2{font-family:'Space Mono',monospace; font-size:16px; margin:0;}
@@ -203,18 +190,18 @@
   }
   .action-choice button .ic{font-size:20px;}
 
-  label{display:block; font-size:12px; color:var(--ink-soft); margin:12px 0 5px; font-weight:600;}
+  label{display:block; font-size:12px; color:var(--ink-soft); margin:14px 0 6px; font-weight:600;}
   label:first-of-type{margin-top:0;}
   input[type=text], input[type=number], select, textarea{
     width:100%; padding:10px 11px; border:1px solid var(--line); border-radius:9px;
     background:var(--card); color:var(--ink); font-size:14px; font-family:'Inter',sans-serif; outline:none;
   }
-  textarea{resize:vertical; min-height:55px;}
-  .hint{font-size:11px; color:var(--ink-faint); margin-top:4px;}
+  textarea{resize:vertical; min-height:60px;}
+  .hint{font-size:11px; color:var(--ink-faint); margin-top:5px;}
 
   .photo-picker{display:flex; align-items:center; gap:12px;}
   .photo-preview{
-    width:76px; height:76px; border-radius:10px; object-fit:contain; border:1px solid var(--line); background:var(--card);
+    width:76px; height:76px; border-radius:10px; object-fit:cover; border:1px solid var(--line); background:var(--card);
     display:flex; align-items:center; justify-content:center; color:var(--ink-faint); font-size:26px;
   }
   .photo-btns{display:flex; flex-direction:column; gap:6px;}
@@ -234,14 +221,14 @@
   .row2 > div{flex:1;}
 
   .detail-photo{
-    width:100%; aspect-ratio:16/9; border-radius:14px; object-fit:contain; background:var(--card); border:1px solid var(--line);
+    width:100%; aspect-ratio:1/1; border-radius:14px; object-fit:cover; background:var(--card); border:1px solid var(--line);
     display:flex; align-items:center; justify-content:center; font-size:40px; color:var(--ink-faint); margin-bottom:14px;
   }
   .detail-title{font-size:19px; font-weight:700; margin:0 0 8px;}
   .detail-row{display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--line); font-size:13px;}
   .detail-row .k{color:var(--ink-soft);}
-  .detail-row .v{font-weight:600; text-align:right; max-width:65%; word-break:break-all;}
-  .note-block{font-size:13px; color:var(--ink); line-height:1.6; margin-top:10px; white-space:pre-wrap; background:var(--card); padding:10px; border-radius:8px; border:1px solid var(--line);}
+  .detail-row .v{font-weight:600; text-align:right; max-width:65%;}
+  .note-block{font-size:13px; color:var(--ink); line-height:1.6; margin-top:10px; white-space:pre-wrap;}
   .tag-chip{display:inline-block; background:var(--paper); border:1px solid var(--line); border-radius:20px; padding:3px 10px; font-size:11px; margin:3px 4px 0 0; color:var(--ink-soft);}
   .toast{
     position:fixed; bottom:100px; left:50%; transform:translateX(-50%); z-index:80;
@@ -273,9 +260,10 @@
   <div class="auth-card">
     <div class="auth-icon">📦</div>
     <h1>家庫 HomeStock</h1>
-    <p>把你家的庫存資料，安全地存在你自己的 Google Drive 裡，手機與桌面跨裝置同步。</p>
+    <p>把你家的庫存資料，安全地存在你自己的 Google Drive 裡，換手機、換裝置都同步。</p>
     <button id="authSigninBtn" class="google-btn">🔐 使用 Google 帳號登入</button>
     <p class="auth-status" id="authStatus"></p>
+    <div style="margin-top:24px; font-size:11px; color:var(--ink-faint); font-family:'Space Mono',monospace;" id="loginVersionTag"></div>
   </div>
 </div>
 <div id="app" style="display:none;">
@@ -284,7 +272,7 @@
       <h1>家庫 HomeStock <span class="version-tag mono" id="versionTag"></span></h1>
       <div style="display:flex; align-items:center; gap:8px;">
         <span class="count mono" id="headerCount"></span>
-        <button class="cloud-btn" id="cloudBtn" title="雲端備份與設定">☁️</button>
+        <button class="cloud-btn" id="cloudBtn" title="Google Drive 連線與備份">☁️</button>
       </div>
     </div>
     <div class="search-row" id="searchRow"></div>
@@ -300,22 +288,12 @@
 <div id="overlayRoot"></div>
 
 <script>
-function getDynamicVersion(){
-  const now = new Date();
-  const yy = String(now.getFullYear()).slice(-2);
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const dd = String(now.getDate()).padStart(2, '0');
-  const hh = String(now.getHours()).padStart(2, '0');
-  const min = String(now.getMinutes()).padStart(2, '0');
-  const ss = String(now.getSeconds()).padStart(2, '0');
-  return `r${yy}.${mm}${dd}.${hh}${min}${ss}`;
-}
-
-const APP_VERSION = getDynamicVersion();
+const APP_VERSION = 'r26.0828.135848';
 const VERSION_LOG = [
-  { v: APP_VERSION, note:'修復手機 Google 登入卡住問題：將 OCR (Tesseract.js) 改為點擊才動態載入' },
-  { v:'r26.0828.111130', note:'加入前端智慧去背與規格銘板文字 OCR 辨識自動帶入功能' },
-  { v:'r26.0828.152723', note:'Google Drive 雲端同步' },
+  { v:'r26.0828.135848', note:'固定時分秒版本號，保留未登入頁面與頂部版本號顯示（無 OCR）' },
+  { v:'r26.0828.160000', note:'新增條碼/QR Code快速掃描功能、資料匯出（JSON/CSV）備份、以及統計儀表板分頁' },
+  { v:'r26.0828.152723', note:'正式接上 Google Drive：資料存在你 Drive 裡的「HomeStock 家庫資料」資料夾' },
+  { v:'r26.0827', note:'第一版：儲位管理、物品建立（含照片）、搜尋與篩選' },
 ];
 
 const STORE_KEYS = { LOCATIONS:'locations', ITEMS_INDEX:'items-index', ITEM_PREFIX:'item:' };
@@ -324,6 +302,9 @@ const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 const DRIVE_FOLDER_NAME = 'HomeStock 家庫資料';
 
 let driveState = { accessToken:null, tokenClient:null, folderId:null };
+
+document.getElementById('loginVersionTag').textContent = APP_VERSION;
+document.getElementById('loginVersionTag').addEventListener('click', showVersionLog);
 
 function waitForGoogle(){
   return new Promise(resolve=>{
@@ -452,7 +433,6 @@ let state = {
   itemsIndex:[],
   query:'',
   locationFilter:'',
-  statusFilter:'',
   photoDraft:null,
 };
 
@@ -473,8 +453,8 @@ function locationTypeOf(id){
   const l=locationById(id); return l? l.type : 'other';
 }
 
-function processImageWithBackgroundRemoval(file, maxSize){
-  return new Promise((resolve, reject)=>{
+function compressImage(file, maxSize, quality){
+  return new Promise((resolve,reject)=>{
     const reader = new FileReader();
     reader.onload = e=>{
       const img = new Image();
@@ -482,47 +462,15 @@ function processImageWithBackgroundRemoval(file, maxSize){
         let w=img.width, h=img.height;
         if(w>h && w>maxSize){ h=Math.round(h*maxSize/w); w=maxSize; }
         else if(h>=w && h>maxSize){ w=Math.round(w*maxSize/h); h=maxSize; }
-        
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, w, h);
-        
-        const imgData = ctx.getImageData(0, 0, w, h);
-        const data = imgData.data;
-        
-        let rSum = 0, gSum = 0, bSum = 0;
-        const corners = [0, (w-1)*4, (w*h - w)*4, (w*h - 1)*4];
-        corners.forEach(idx => {
-          rSum += data[idx]; gSum += data[idx+1]; bSum += data[idx+2];
-        });
-        const bgR = rSum/4, bgG = gSum/4, bgB = bSum/4;
-        
-        if((bgR + bgG + bgB) / 3 > 180){
-          for(let i=0; i<data.length; i+=4){
-            const r = data[i], g = data[i+1], b = data[i+2];
-            const diff = Math.abs(r - bgR) + Math.abs(g - bgG) + Math.abs(b - bgB);
-            if(diff < 55){
-              data[i+3] = 0;
-            }
-          }
-          ctx.putImageData(imgData, 0, 0);
-        }
-        
-        const full = canvas.toDataURL('image/png');
-        
-        const thumbCanvas = document.createElement('canvas');
-        thumbCanvas.width = 160; thumbCanvas.height = 160;
-        const tCtx = thumbCanvas.getContext('2d');
-        tCtx.drawImage(canvas, 0, 0, 160, 160);
-        const thumb = thumbCanvas.toDataURL('image/png');
-        
-        resolve({full, thumb});
+        const canvas=document.createElement('canvas');
+        canvas.width=w; canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
       };
-      img.onerror = reject;
-      img.src = e.target.result;
+      img.onerror=reject;
+      img.src=e.target.result;
     };
-    reader.onerror = reject;
+    reader.onerror=reject;
     reader.readAsDataURL(file);
   });
 }
@@ -592,11 +540,10 @@ async function exportJsonData(){
 }
 
 async function exportCsvData(){
-  let csv = '\uFEFF名稱,數量,狀態,使用地方,設備ID,登入資訊,分類,儲位,標籤,更新時間\n';
+  let csv = '\uFEFF名稱,數量,分類,儲位,標籤,更新時間\n';
   state.itemsIndex.forEach(i=>{
     const locName = locationPath(i.locationId) || '未指定';
-    const statusText = i.status === 'out' ? '使用中' : '在庫';
-    csv += `"${i.name || ''}",${i.qty || 1},"${statusText}","${i.outPlace || ''}","${i.deviceId || ''}","${i.loginInfo || ''}","${i.category || ''}","${locName}","${i.tags || ''}","${new Date(i.updatedAt).toLocaleString()}"\n`;
+    csv += `"${i.name || ''}",${i.qty || 1},"${i.category || ''}","${locName}","${i.tags || ''}","${new Date(i.updatedAt).toLocaleString()}"\n`;
   });
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
@@ -635,20 +582,14 @@ function renderSearchRow(){
   row.innerHTML = `
     <div class="search-box">
       <span>🔍</span>
-      <input id="searchInput" type="text" placeholder="搜尋物品名稱、設備ID、標籤…" value="${escapeAttr(state.query)}">
+      <input id="searchInput" type="text" placeholder="搜尋物品名稱、標籤…" value="${escapeAttr(state.query)}">
     </div>
-    <select class="filter-select" id="statusFilterSelect">
-      <option value="">全部狀態</option>
-      <option value="in" ${state.statusFilter==='in'?'selected':''}>🟢 在庫</option>
-      <option value="out" ${state.statusFilter==='out'?'selected':''}>🟠 使用中</option>
-    </select>
-    <select class="filter-select" id="locFilterSelect" style="max-width:110px;">
+    <select class="filter-select" id="locFilterSelect">
       <option value="">全部儲位</option>
       ${state.locations.map(l=>`<option value="${l.id}" ${state.locationFilter===l.id?'selected':''}>${escapeHtml(l.name)}</option>`).join('')}
     </select>
   `;
   document.getElementById('searchInput').addEventListener('input', e=>{ state.query=e.target.value; renderMain(); });
-  document.getElementById('statusFilterSelect').addEventListener('change', e=>{ state.statusFilter=e.target.value; renderMain(); });
   document.getElementById('locFilterSelect').addEventListener('change', e=>{ state.locationFilter=e.target.value; renderMain(); });
 }
 
@@ -666,16 +607,9 @@ function renderMain(){
 function renderItemsList(){
   let list = state.itemsIndex;
   if(state.locationFilter) list = list.filter(i=>i.locationId===state.locationFilter);
-  if(state.statusFilter) list = list.filter(i=> (i.status||'in') === state.statusFilter);
   if(state.query.trim()){
     const q=state.query.trim().toLowerCase();
-    list = list.filter(i => 
-      (i.name||'').toLowerCase().includes(q) || 
-      (i.tags||'').toLowerCase().includes(q) || 
-      (i.category||'').toLowerCase().includes(q) ||
-      (i.deviceId||'').toLowerCase().includes(q) ||
-      (i.outPlace||'').toLowerCase().includes(q)
-    );
+    list = list.filter(i => (i.name||'').toLowerCase().includes(q) || (i.tags||'').toLowerCase().includes(q) || (i.category||'').toLowerCase().includes(q));
   }
   if(list.length===0){
     return `<div class="empty-state"><div class="glyph">📦</div>
@@ -688,9 +622,8 @@ function renderItemsList(){
     const t = locationTypeOf(it.locationId);
     const tinfo = LOC_TYPES[t] || LOC_TYPES.other;
     const thumb = it.thumb
-      ? `<img class="item-thumb" src="${it.thumb}" style="background:transparent;">`
+      ? `<img class="item-thumb" src="${it.thumb}">`
       : `<div class="item-thumb">${tinfo.icon}</div>`;
-    const isOut = it.status === 'out';
     return `
     <div class="item-card" data-id="${it.id}">
       ${thumb}
@@ -698,11 +631,9 @@ function renderItemsList(){
         <p class="name">${escapeHtml(it.name)}</p>
         <div class="item-meta">
           <span class="qty-badge">×${it.qty ?? 1}</span>
-          <span class="status-badge ${isOut?'status-out':'status-in'}">${isOut ? '🟠 使用中' : '🟢 在庫'}</span>
           ${it.locationId ? `<span class="tag-badge ${tinfo.cls}">${escapeHtml(locationPath(it.locationId)||'未分類')}</span>` : `<span class="tag-badge tag-other">未指定儲位</span>`}
         </div>
-        ${isOut && it.outPlace ? `<div class="tags-line" style="color:var(--warn);">📍 正在：${escapeHtml(it.outPlace)}</div>` : ''}
-        ${it.deviceId ? `<div class="tags-line">🆔 ID: ${escapeHtml(it.deviceId)}</div>` : ''}
+        ${it.tags ? `<div class="tags-line">${escapeHtml(it.tags)}</div>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -742,7 +673,6 @@ function renderLocationsList(){
 function renderStatsView(){
   const totalItems = state.itemsIndex.length;
   const totalQty = state.itemsIndex.reduce((sum, i)=> sum + (Number(i.qty) || 1), 0);
-  const outCount = state.itemsIndex.filter(i=> i.status === 'out').length;
   const totalLocs = state.locations.length;
   
   return `
@@ -756,12 +686,12 @@ function renderStatsView(){
         <div class="num">${totalQty}</div>
       </div>
       <div class="stat-card">
-        <div class="label">使用中 / 外借</div>
-        <div class="num" style="color:var(--warn);">${outCount} 件</div>
-      </div>
-      <div class="stat-card">
         <div class="label">總儲位數</div>
         <div class="num">${totalLocs}</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">同步狀態</div>
+        <div class="num" style="font-size:14px; padding-top:6px;">🟢 Google 雲端</div>
       </div>
     </div>
     <div class="loc-group-title">儲位分佈概況</div>
@@ -788,7 +718,7 @@ function openOverlay(html){
   root.innerHTML = `<div class="overlay" id="ovBg"><div class="sheet">${html}</div></div>`;
   document.getElementById('ovBg').addEventListener('click', e=>{ if(e.target.id==='ovBg') closeOverlay(); });
 }
-function closeOverlay(){ document.getElementById('overlayRoot'].innerHTML=''; state.photoDraft=null; }
+function closeOverlay(){ document.getElementById('overlayRoot').innerHTML=''; state.photoDraft=null; }
 
 document.getElementById('fabBtn').addEventListener('click', ()=>{
   openOverlay(`
@@ -808,7 +738,7 @@ function openLocationForm(existing){
     .map(l=>`<option value="${l.id}" ${existing&&existing.parentId===l.id?'selected':''}>${escapeHtml(locationPath(l.id))}</option>`).join('');
   openOverlay(`
     <div class="sheet-header"><h2>${existing?'編輯儲位':'新增儲位'}</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
-    <label>名稱（不可重複）</label>
+    <label>名稱</label>
     <input type="text" id="locName" placeholder="例如：客廳層架、工具箱" value="${existing?escapeAttr(existing.name):''}">
     <label>類型</label>
     <select id="locType">
@@ -831,13 +761,6 @@ function openLocationForm(existing){
 async function saveLocationFromForm(existing){
   const name = document.getElementById('locName').value.trim();
   if(!name){ toast('請輸入儲位名稱'); return; }
-  
-  const duplicate = state.locations.find(l => l.name === name && (!existing || l.id !== existing.id));
-  if(duplicate){
-    toast('儲位名稱已存在，請使用不同的名稱');
-    return;
-  }
-
   const type = document.getElementById('locType').value;
   const parentId = document.getElementById('locParent').value || null;
   const note = document.getElementById('locNote').value.trim();
@@ -874,23 +797,15 @@ function openLocationDetail(id){
     <div class="sheet-header"><h2>${LOC_TYPES[loc.type].icon} ${escapeHtml(loc.name)}</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
     ${loc.parentId?`<div class="loc-path" style="margin-bottom:10px;">位於 ${escapeHtml(locationPath(loc.parentId))}</div>`:''}
     ${loc.note?`<p class="note-block" style="margin-top:0;">${escapeHtml(loc.note)}</p>`:''}
-    <label style="margin-top:6px;">固定存放於此的物品（${items.length}）</label>
+    <label style="margin-top:6px;">內含物品（${items.length}）</label>
     ${items.length? items.map(it=>`
       <div class="item-card" data-id="${it.id}" style="margin-bottom:8px;">
-        ${it.thumb?`<img class="item-thumb" src="${it.thumb}" style="background:transparent;">`:`<div class="item-thumb">${LOC_TYPES[loc.type].icon}</div>`}
-        <div class="item-info">
-          <p class="name">${escapeHtml(it.name)}</p>
-          <div class="item-meta">
-            <span class="qty-badge">×${it.qty??1}</span>
-            <span class="status-badge ${it.status==='out'?'status-out':'status-in'}">${it.status==='out'?'🟠 使用中':'🟢 在庫'}</span>
-          </div>
-        </div>
-      </div>`).join('') : `<p class="hint">這個儲位目前沒有放置物品</p>`}
+        ${it.thumb?`<img class="item-thumb" src="${it.thumb}">`:`<div class="item-thumb">${LOC_TYPES[loc.type].icon}</div>`}
+        <div class="item-info"><p class="name">${escapeHtml(it.name)}</p><span class="qty-badge">×${it.qty??1}</span></div>
+      </div>`).join('') : `<p class="hint">這個儲位目前是空的</p>`}
     <button class="btn-primary" id="editLocBtn">編輯儲位</button>
-    <button class="btn-danger" id="delLocFromDetailBtn" style="margin-top:8px;">刪除此儲位</button>
   `);
   document.getElementById('editLocBtn').addEventListener('click', ()=> openLocationForm(loc));
-  document.getElementById('delLocFromDetailBtn').addEventListener('click', ()=> deleteLocationFlow(loc.id));
   document.querySelectorAll('#overlayRoot .item-card').forEach(c=> c.addEventListener('click', ()=> openItemDetail(c.dataset.id)));
 }
 
@@ -905,75 +820,43 @@ function openItemForm(existingIndexEntry){
 
   openOverlay(`
     <div class="sheet-header"><h2>${existingIndexEntry?'編輯物品':'新增物品'}</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
-    
-    <label>照片（自動去背與智慧 OCR）</label>
+    <label>照片（選填）</label>
     <div class="photo-picker">
-      <div class="photo-preview" id="photoPreview" style="background:transparent;">🖼️</div>
+      <div class="photo-preview" id="photoPreview">🖼️</div>
       <div class="photo-btns">
         <label class="btn-secondary" for="photoInput">拍照 / 選擇圖片</label>
         <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none;">
         <button class="btn-secondary" id="clearPhotoBtn" type="button">移除照片</button>
       </div>
     </div>
-    <div id="ocrStatus" class="hint" style="color:var(--accent);"></div>
-
     <label style="display:flex; justify-content:space-between; align-items:center;">
       <span>名稱</span>
       <button type="button" id="scanBarcodeBtn" class="btn-secondary" style="padding:2px 8px; font-size:11px;">📷 掃描條碼</button>
     </label>
-    <input type="text" id="itName" placeholder="例如：3D印製主機、電源供應器">
+    <input type="text" id="itName" placeholder="例如：十字螺絲起子">
     <div id="scannerContainer" style="display:none; margin-top:10px;"><div id="reader" style="width:100%;"></div><button type="button" class="btn-secondary" id="closeScannerBtn" style="margin-top:6px; width:100%;">關閉相機</button></div>
-    
     <div class="row2">
       <div><label>數量</label><input type="number" id="itQty" min="0" value="1"></div>
       <div>
         <label>分類（選填）</label>
-        <input type="text" id="itCategory" list="catList" placeholder="工具、電子設備…">
-        <datalist id="catList"><option value="工具"><option value="電子設備"><option value="文具"><option value="衣物"><option value="廚房用品"><option value="雜貨"></datalist>
+        <input type="text" id="itCategory" list="catList" placeholder="工具、電子…">
+        <datalist id="catList"><option value="工具"><option value="電子"><option value="文具"><option value="衣物"><option value="廚房用品"><option value="雜貨"></datalist>
       </div>
     </div>
-
-    <label>固定儲位（物品的歸屬位置）</label>
+    <label>儲位</label>
     <select id="itLocation">${locOptions}</select>
-
-    <div class="row2" style="margin-top:2px;">
-      <div>
-        <label>狀態</label>
-        <select id="itStatus">
-          <option value="in">🟢 在庫</option>
-          <option value="out">🟠 領出使用中</option>
-        </select>
-      </div>
-      <div>
-        <label>使用地方/外借備註</label>
-        <input type="text" id="itOutPlace" placeholder="例如：工作室B桌、客廳">
-      </div>
-    </div>
-
-    <div class="row2">
-      <div>
-        <label>設備 ID (Device ID)</label>
-        <input type="text" id="itDeviceId" placeholder="例如：DEV-001、SN-8821">
-      </div>
-      <div>
-        <label>登入資訊 (Login 資訊)</label>
-        <input type="text" id="itLoginInfo" placeholder="IP, 帳號/密碼等…">
-      </div>
-    </div>
-
     <label>標籤（選填，用逗號分隔）</label>
-    <input type="text" id="itTags" placeholder="例如：常用, 儀器">
-    <label>備註（支援 OCR 自動填入規格電力規範）</label>
-    <textarea id="itNote" placeholder="任何補充說明、規格或電力使用規範…"></textarea>
+    <input type="text" id="itTags" placeholder="例如：常用, 露營">
+    <label>備註（選填）</label>
+    <textarea id="itNote" placeholder="任何補充說明…"></textarea>
     <button class="btn-primary" id="saveItemBtn">${existingIndexEntry?'儲存變更':'建立物品'}</button>
     ${existingIndexEntry?'<button class="btn-danger" id="delItemBtn">刪除此物品</button>':''}
   `);
 
-  document.getElementById('photoInput').addEventListener('change', handlePhotoInputAndOcr);
+  document.getElementById('photoInput').addEventListener('change', handlePhotoInput);
   document.getElementById('clearPhotoBtn').addEventListener('click', ()=>{
     state.photoDraft = 'REMOVE';
     document.getElementById('photoPreview').innerHTML = '🖼️';
-    document.getElementById('ocrStatus').textContent = '';
   });
   document.getElementById('scanBarcodeBtn').addEventListener('click', startBarcodeScanner);
   document.getElementById('saveItemBtn').addEventListener('click', ()=> saveItemFromForm(existingIndexEntry));
@@ -986,70 +869,12 @@ function openItemForm(existingIndexEntry){
       document.getElementById('itQty').value = full.qty ?? 1;
       document.getElementById('itCategory').value = full.category||'';
       document.getElementById('itLocation').value = full.locationId||'';
-      document.getElementById('itStatus').value = full.status || 'in';
-      document.getElementById('itOutPlace').value = full.outPlace || '';
-      document.getElementById('itDeviceId').value = full.deviceId || '';
-      document.getElementById('itLoginInfo').value = full.loginInfo || '';
       document.getElementById('itTags').value = full.tags||'';
       document.getElementById('itNote').value = full.note||'';
       if(full.photo){
-        document.getElementById('photoPreview').innerHTML = `<img src="${full.photo}" style="width:100%;height:100%;object-fit:contain;">`;
+        document.getElementById('photoPreview').innerHTML = `<img src="${full.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
       }
     });
-  }
-}
-
-// 动态載入 Tesseract.js (Lazy Load) 避免阻塞手機登入
-function loadTesseractScript(){
-  return new Promise((resolve, reject)=>{
-    if(window.Tesseract){ resolve(window.Tesseract); return; }
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
-    script.onload = ()=> resolve(window.Tesseract);
-    script.onerror = reject;
-    document.head.appendChild(script);
-  });
-}
-
-async function handlePhotoInputAndOcr(e){
-  const file = e.target.files[0];
-  if(!file) return;
-  const preview = document.getElementById('photoPreview');
-  const ocrStatus = document.getElementById('ocrStatus');
-  preview.innerHTML = `<span class="loading-dot"></span>`;
-  ocrStatus.textContent = '🔄 正在進行智慧去背…';
-
-  try {
-    const processed = await processImageWithBackgroundRemoval(file, 900);
-    state.photoDraft = processed;
-    preview.innerHTML = `<img src="${processed.thumb}" style="width:100%;height:100%;object-fit:contain;">`;
-
-    ocrStatus.textContent = '🔄 載入 OCR 辨識引擎中…';
-    const TesseractLib = await loadTesseractScript();
-
-    ocrStatus.textContent = '🔄 正在掃描銘板與電力規範文字…';
-    const worker = await TesseractLib.createWorker('chi_tra+eng');
-    const ret = await worker.recognize(file);
-    await worker.terminate();
-
-    const text = ret.data.text.trim();
-    if(text){
-      const currentNote = document.getElementById('itNote').value;
-      document.getElementById('itNote').value = (currentNote ? currentNote + '\n\n' : '') + '【OCR 自動辨識規格/電力規範】：\n' + text;
-      
-      const snMatch = text.match(/(?:SN|S\/N|ID|No\.?)\s*[:：]?\s*([A-Za-z0-9\-]+)/i);
-      if(snMatch && snMatch[1] && !document.getElementById('itDeviceId').value){
-        document.getElementById('itDeviceId').value = snMatch[1];
-      }
-
-      ocrStatus.textContent = '✨ 去背完成，且已成功擷取銘板文字！';
-    } else {
-      ocrStatus.textContent = '✨ 去背完成（未偵測到明顯文字銘板）';
-    }
-  } catch(err) {
-    toast('圖片處理或 OCR 辨識失敗');
-    preview.innerHTML = '🖼️';
-    ocrStatus.textContent = '';
   }
 }
 
@@ -1086,6 +911,22 @@ function stopBarcodeScanner(){
   }
 }
 
+async function handlePhotoInput(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const preview = document.getElementById('photoPreview');
+  preview.innerHTML = `<span class="loading-dot"></span>`;
+  try{
+    const full = await compressImage(file, 900, 0.72);
+    const thumb = await compressImage(file, 160, 0.6);
+    state.photoDraft = {full, thumb};
+    preview.innerHTML = `<img src="${thumb}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
+  }catch(err){
+    toast('圖片處理失敗');
+    preview.innerHTML = '🖼️';
+  }
+}
+
 async function saveItemFromForm(existingIndexEntry){
   stopBarcodeScanner();
   const name = document.getElementById('itName').value.trim();
@@ -1093,10 +934,6 @@ async function saveItemFromForm(existingIndexEntry){
   const qty = parseFloat(document.getElementById('itQty').value) || 0;
   const category = document.getElementById('itCategory').value.trim();
   const locationId = document.getElementById('itLocation').value;
-  const status = document.getElementById('itStatus').value;
-  const outPlace = document.getElementById('itOutPlace').value.trim();
-  const deviceId = document.getElementById('itDeviceId').value.trim();
-  const loginInfo = document.getElementById('itLoginInfo').value.trim();
   const tags = document.getElementById('itTags').value.trim();
   const note = document.getElementById('itNote').value.trim();
   const now = Date.now();
@@ -1113,10 +950,10 @@ async function saveItemFromForm(existingIndexEntry){
   if(state.photoDraft === 'REMOVE'){ photo=undefined; thumb=undefined; }
   else if(state.photoDraft && state.photoDraft.full){ photo=state.photoDraft.full; thumb=state.photoDraft.thumb; }
 
-  const fullRecord = { id, name, qty, category, locationId, status, outPlace, deviceId, loginInfo, tags, note, photo, createdAt, updatedAt: now };
+  const fullRecord = { id, name, qty, category, locationId, tags, note, photo, createdAt, updatedAt: now };
   await saveItemRecord(fullRecord);
 
-  const indexEntry = { id, name, qty, category, locationId, status, outPlace, deviceId, tags, thumb, updatedAt: now };
+  const indexEntry = { id, name, qty, category, locationId, tags, thumb, updatedAt: now };
   const idx = state.itemsIndex.findIndex(i=>i.id===id);
   if(idx>=0) state.itemsIndex[idx]=indexEntry; else state.itemsIndex.push(indexEntry);
   await saveItemsIndex(state.itemsIndex);
@@ -1144,23 +981,17 @@ async function openItemDetail(id){
   if(!full){ toast('讀取失敗'); closeOverlay(); return; }
   const t = locationTypeOf(full.locationId);
   const tinfo = LOC_TYPES[t]||LOC_TYPES.other;
-  const isOut = full.status === 'out';
-  
   document.querySelector('#overlayRoot .sheet').innerHTML = `
     <div class="sheet-header"><h2>物品詳情</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
-    ${full.photo ? `<img class="detail-photo" src="${full.photo}" style="background:transparent;">` : `<div class="detail-photo">${tinfo.icon}</div>`}
+    ${full.photo ? `<img class="detail-photo" src="${full.photo}">` : `<div class="detail-photo">${tinfo.icon}</div>`}
     <p class="detail-title">${escapeHtml(full.name)}</p>
-    <div class="detail-row"><span class="k">狀態</span><span class="v"><span class="status-badge ${isOut?'status-out':'status-in'}">${isOut ? '🟠 使用中' : '🟢 在庫'}</span></span></div>
-    ${isOut && full.outPlace ? `<div class="detail-row"><span class="k">使用地方</span><span class="v" style="color:var(--warn);">${escapeHtml(full.outPlace)}</span></div>` : ''}
     <div class="detail-row"><span class="k">數量</span><span class="v">${full.qty ?? 1}</span></div>
-    ${full.deviceId ? `<div class="detail-row"><span class="k">設備 ID</span><span class="v mono">${escapeHtml(full.deviceId)}</span></div>` : ''}
-    ${full.loginInfo ? `<div class="detail-row"><span class="k">登入資訊</span><span class="v mono">${escapeHtml(full.loginInfo)}</span></div>` : ''}
     ${full.category?`<div class="detail-row"><span class="k">分類</span><span class="v">${escapeHtml(full.category)}</span></div>`:''}
-    <div class="detail-row"><span class="k">固定儲位</span><span class="v"><span class="tag-badge ${tinfo.cls}">${escapeHtml(locationPath(full.locationId)||'未指定')}</span></span></div>
+    <div class="detail-row"><span class="k">儲位</span><span class="v"><span class="tag-badge ${tinfo.cls}">${escapeHtml(locationPath(full.locationId)||'未指定')}</span></span></div>
     <div class="detail-row"><span class="k">更新時間</span><span class="v">${new Date(full.updatedAt).toLocaleString('zh-TW')}</span></div>
     ${full.tags ? `<div style="margin-top:10px;">${full.tags.split(',').map(t=>t.trim()).filter(Boolean).map(t=>`<span class="tag-chip">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
-    ${full.note ? `<div class="note-block"><b>備註與規格規範：</b><br>${escapeHtml(full.note)}</div>` : ''}
-    <button class="btn-primary" id="editItemBtn">編輯物品 / 變更狀態</button>
+    ${full.note ? `<div class="note-block">${escapeHtml(full.note)}</div>` : ''}
+    <button class="btn-primary" id="editItemBtn">編輯物品</button>
   `;
   document.getElementById('editItemBtn').addEventListener('click', ()=> openItemForm(indexEntry));
 }
