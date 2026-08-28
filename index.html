@@ -261,7 +261,10 @@
 <script>
 /* =========================================================
    資料層 (Storage layer)
-   目前使用瀏覽器持久化 window.storage 當作示範資料庫。
+   目前使用瀏覽器內建的 IndexedDB 當作示範資料庫——這是標準
+   瀏覽器功能，不管是本機打開、還是部署到 GitHub Pages 之後，
+   資料都會真正存在「這支手機、這個瀏覽器」裡，重開機、重新整理
+   都不會消失，但換一台裝置或清除瀏覽器資料就會不見。
    之後若要換成 Google Drive，只需要改寫這一段
    (getLocations / saveLocations / getItemsIndex / saveItemsIndex /
     getItem / saveItem / deleteItemRecord) 的實作即可，
@@ -269,16 +272,51 @@
 ========================================================= */
 const STORE_KEYS = { LOCATIONS:'locations', ITEMS_INDEX:'items-index', ITEM_PREFIX:'item:' };
 
+const DB_NAME = 'homestock-db';
+const DB_STORE = 'kv';
+let dbPromise = null;
+function openDB(){
+  if(dbPromise) return dbPromise;
+  dbPromise = new Promise((resolve,reject)=>{
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = ()=>{ req.result.createObjectStore(DB_STORE, {keyPath:'key'}); };
+    req.onsuccess = ()=> resolve(req.result);
+    req.onerror = ()=> reject(req.error);
+  });
+  return dbPromise;
+}
 async function safeGet(key){
-  try{ const r = await window.storage.get(key,false); return r ? JSON.parse(r.value) : null; }
-  catch(e){ return null; }
+  try{
+    const db = await openDB();
+    return await new Promise(resolve=>{
+      const tx = db.transaction(DB_STORE,'readonly');
+      const req = tx.objectStore(DB_STORE).get(key);
+      req.onsuccess = ()=> resolve(req.result ? req.result.value : null);
+      req.onerror = ()=> resolve(null);
+    });
+  }catch(e){ console.error('storage get failed', key, e); return null; }
 }
 async function safeSet(key, value){
-  try{ await window.storage.set(key, JSON.stringify(value), false); return true; }
-  catch(e){ console.error('storage set failed', key, e); return false; }
+  try{
+    const db = await openDB();
+    return await new Promise(resolve=>{
+      const tx = db.transaction(DB_STORE,'readwrite');
+      tx.objectStore(DB_STORE).put({key, value});
+      tx.oncomplete = ()=> resolve(true);
+      tx.onerror = ()=> resolve(false);
+    });
+  }catch(e){ console.error('storage set failed', key, e); return false; }
 }
 async function safeDelete(key){
-  try{ await window.storage.delete(key,false); }catch(e){}
+  try{
+    const db = await openDB();
+    await new Promise(resolve=>{
+      const tx = db.transaction(DB_STORE,'readwrite');
+      tx.objectStore(DB_STORE).delete(key);
+      tx.oncomplete = ()=> resolve();
+      tx.onerror = ()=> resolve();
+    });
+  }catch(e){}
 }
 
 async function getLocations(){ return (await safeGet(STORE_KEYS.LOCATIONS)) || []; }
