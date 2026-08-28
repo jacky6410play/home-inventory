@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <!-- IDENTIFIER: HOMESTOCK-GITHUB-DEPLOY -->
-<!-- VERSION: r26.0828.135848 -->
+<!-- VERSION: r26.0828.152100 -->
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -244,7 +244,7 @@
   }
   .auth-card{ width:100%; max-width:340px; text-align:center; }
   .auth-icon{ font-size:44px; margin-bottom:14px; }
-  .auth-card h1{ font-family:'Space Mono',monospace; font-size:21px; margin:0 0 10px; }
+  .auth-card h1{ font-family:'Space Mono',monospace; font-size:21px; margin:0 0 2px; }
   .auth-card p{ font-size:13px; color:var(--ink-soft); line-height:1.6; margin:0; }
   .auth-status{ margin-top:14px; font-size:12px; color:var(--ink-faint); min-height:16px; }
   .google-btn{
@@ -260,9 +260,11 @@
 <div id="authGate" class="auth-gate">
   <div class="auth-card">
     <div class="auth-icon">📦</div>
-    <h1>家庫 HomeStock</h1>
-    <p>把你家的庫存資料，安全地存在你自己的 Google Drive 裡，換手機、換裝置都同步。</p>
-    <div style="margin-top:10px; font-size:12px; font-weight:700; color:var(--ink); font-family:'Space Mono',monospace;" id="loginVersionTag"></div>
+    <div style="display:inline-block; text-align:left;">
+      <h1>家庫 HomeStock</h1>
+      <div style="font-size:12px; font-weight:700; color:var(--ink); font-family:'Space Mono',monospace; text-align:right;" id="loginVersionTag"></div>
+    </div>
+    <p style="margin-top:12px;">把你家的庫存資料，安全地存在你自己的 Google Drive 裡，換手機、換裝置都同步。</p>
     <button id="authSigninBtn" class="google-btn">🔐 使用 Google 帳號登入</button>
     <p class="auth-status" id="authStatus"></p>
   </div>
@@ -289,9 +291,10 @@
 <div id="overlayRoot"></div>
 
 <script>
-const APP_VERSION = 'r26.0828.135848';
+const APP_VERSION = 'r26.0828.152100';
 const VERSION_LOG = [
-  { v:'r26.0828.135848', note:'版本號放置於家庫說明下方並改為粗黑體顯示' },
+  { v:'r26.0828.152100', note:'更新版號對齊當前系統時間' },
+  { v:'r26.0828.135848', note:'調整登入頁版本號至標題下方並與字尾 K 對齊' },
   { v:'r26.0828.160000', note:'新增條碼/QR Code快速掃描功能、資料匯出（JSON/CSV）備份、以及統計儀表板分頁' },
   { v:'r26.0828.152723', note:'正式接上 Google Drive：資料存在你 Drive 裡的「HomeStock 家庫資料」資料夾' },
   { v:'r26.0827', note:'第一版：儲位管理、物品建立（含照片）、搜尋與篩選' },
