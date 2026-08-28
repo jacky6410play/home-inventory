@@ -61,6 +61,10 @@
     margin:0; font-size:20px; letter-spacing:.01em;
     font-family:'Space Mono',monospace; font-weight:700;
   }
+  .version-tag{
+    font-size:10px; font-weight:400; color:var(--ink-faint);
+    vertical-align:baseline; letter-spacing:0;
+  }
   header.top .count{
     font-size:11px; color:var(--ink-soft); font-family:'Space Mono',monospace;
   }
@@ -244,7 +248,7 @@
 <div id="app">
   <header class="top">
     <div class="brand">
-      <h1>家庫 HomeStock</h1>
+      <h1>家庫 HomeStock <span class="version-tag mono" id="versionTag"></span></h1>
       <span class="count mono" id="headerCount"></span>
     </div>
     <div class="search-row" id="searchRow"></div>
@@ -259,6 +263,19 @@
 <div id="overlayRoot"></div>
 
 <script>
+/* =========================================================
+   版本控制
+   每次我幫你改版，都會更新這個數字，方便你確認手機上看到的
+   是不是最新版本（GitHub Pages 更新後，記得強制重新整理頁面）。
+========================================================= */
+const APP_VERSION = 'r26.0828.042517';
+const VERSION_LOG = [
+  { v:'r26.0828.042517', note:'版本號改為與標題文字底部切齊' },
+  { v:'r26.0828.042435', note:'加入版本號顯示（格式：rYY.MMDD.時分秒），點標題旁的版本號可看更新紀錄' },
+  { v:'r26.0827', note:'儲存改用瀏覽器 IndexedDB，部署到 GitHub Pages 後資料才會真正存住' },
+  { v:'r26.0827', note:'第一版：儲位管理、物品建立（含照片）、搜尋與篩選' },
+];
+
 /* =========================================================
    資料層 (Storage layer)
    目前使用瀏覽器內建的 IndexedDB 當作示範資料庫——這是標準
@@ -399,11 +416,26 @@ function toast(msg){
    初始化
 ========================================================= */
 async function init(){
+  const vTag = document.getElementById('versionTag');
+  vTag.textContent = APP_VERSION;
+  vTag.style.cursor = 'pointer';
+  vTag.addEventListener('click', showVersionLog);
   renderMain(); // loading state
   state.locations = await getLocations();
   state.itemsIndex = await getItemsIndex();
   renderSearchRow();
   renderMain();
+}
+
+function showVersionLog(){
+  openOverlay(`
+    <div class="sheet-header"><h2>更新紀錄</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
+    ${VERSION_LOG.map(l=>`
+      <div class="detail-row" style="align-items:flex-start;">
+        <span class="k mono" style="flex-shrink:0;">${l.v}</span>
+        <span class="v" style="font-weight:400; text-align:left;">${escapeHtml(l.note)}</span>
+      </div>`).join('')}
+  `);
 }
 
 /* =========================================================
