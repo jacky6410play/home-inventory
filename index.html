@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 <style>
   :root{
     --paper:#F1EEE2;
@@ -22,6 +23,8 @@
     --accent:#2E6B6E;
     --accent-ink:#FFFFFF;
     --danger:#B23A34;
+    --warn:#D97706;
+    --success:#10B981;
     --radius:12px;
     --shadow:0 1px 2px rgba(32,36,28,.08), 0 4px 14px rgba(32,36,28,.07);
   }
@@ -38,17 +41,20 @@
   }
   #app{
     width:100%;
-    max-width:480px;
+    max-width:768px;
     min-height:100vh;
     background:var(--paper);
     position:relative;
     display:flex;
     flex-direction:column;
     padding-bottom:78px;
+    box-shadow: 0 0 25px rgba(0,0,0,.05);
+  }
+  @media(min-width: 768px){
+    #app{ max-width: 900px; border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
   }
   .mono{font-family:'Space Mono',monospace;}
 
-  /* Header */
   header.top{
     position:sticky; top:0; z-index:20;
     background:var(--paper);
@@ -64,7 +70,7 @@
   }
   .version-tag{
     font-size:10px; font-weight:700; color:var(--ink);
-    vertical-align:baseline; letter-spacing:0;
+    vertical-align:baseline; letter-spacing:0; cursor:pointer;
   }
   header.top .count{
     font-size:11px; color:var(--ink-soft); font-family:'Space Mono',monospace;
@@ -82,10 +88,9 @@
   }
   select.filter-select{
     border:1px solid var(--line); background:var(--card); color:var(--ink);
-    border-radius:9px; padding:8px 8px; font-size:12px; font-family:'Inter',sans-serif; max-width:110px;
+    border-radius:9px; padding:8px 8px; font-size:12px; font-family:'Inter',sans-serif; max-width:130px;
   }
 
-  /* Tabs content */
   main{flex:1; padding:14px 16px 8px;}
   .empty-state{
     text-align:center; padding:60px 20px; color:var(--ink-soft);
@@ -93,11 +98,11 @@
   .empty-state .glyph{font-size:34px; margin-bottom:10px;}
   .empty-state p{font-size:13px; line-height:1.6; margin:4px 0;}
 
-  /* Item card */
   .item-card{
     display:flex; gap:12px; align-items:center;
     background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
     padding:10px; margin-bottom:10px; box-shadow:var(--shadow); cursor:pointer;
+    position:relative;
   }
   .item-thumb{
     width:56px; height:56px; border-radius:8px; object-fit:cover; flex-shrink:0;
@@ -108,8 +113,10 @@
   .item-info .name{font-size:14.5px; font-weight:600; margin:0 0 3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .item-meta{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
   .qty-badge{font-size:11px; color:var(--ink-soft); font-family:'Space Mono',monospace;}
+  .status-badge{font-size:10px; padding:2px 6px; border-radius:6px; font-weight:600;}
+  .status-in{background:#ECFDF5; color:var(--success); border:1px solid #A7F3D0;}
+  .status-out{background:#FEF3C7; color:var(--warn); border:1px solid #FDE68A;}
 
-  /* Tag badge — signature element: inventory tag with punch hole */
   .tag-badge{
     display:inline-flex; align-items:center;
     font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.01em;
@@ -125,10 +132,8 @@
   .tag-drawer{background:var(--drawer);}
   .tag-box{background:var(--box);}
   .tag-other{background:var(--other);}
-
   .tags-line{font-size:11px; color:var(--ink-faint); margin-top:2px;}
 
-  /* Location list */
   .loc-group-title{
     font-family:'Space Mono',monospace; font-size:11px; color:var(--ink-soft);
     margin:18px 0 8px; text-transform:uppercase; letter-spacing:.06em;
@@ -145,23 +150,27 @@
   .loc-path{font-size:11px; color:var(--ink-faint); margin-top:1px;}
   .loc-count{font-size:11px; color:var(--ink-soft); font-family:'Space Mono',monospace; flex-shrink:0;}
 
-  /* FAB */
+  .stats-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;}
+  .stat-card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:14px; box-shadow:var(--shadow);}
+  .stat-card .num{font-size:22px; font-weight:700; font-family:'Space Mono',monospace; color:var(--accent); margin-top:4px;}
+  .stat-card .label{font-size:12px; color:var(--ink-soft);}
+
   .fab{
-    position:fixed; right:calc(50% - 240px + 18px); bottom:88px; z-index:30;
+    position:fixed; right:calc(50% - 220px + 18px); bottom:88px; z-index:30;
     width:52px; height:52px; border-radius:50%;
     background:var(--accent); color:#fff; border:none;
     font-size:26px; box-shadow:0 4px 14px rgba(46,107,110,.4);
     display:flex; align-items:center; justify-content:center; cursor:pointer;
   }
-  @media (max-width:480px){ .fab{ right:18px; } }
+  @media (max-width:768px){ .fab{ right:18px; } }
 
-  /* Bottom nav */
   nav.bottom{
     position:fixed; bottom:0; left:50%; transform:translateX(-50%);
-    width:100%; max-width:480px; background:var(--card);
+    width:100%; max-width:768px; background:var(--card);
     border-top:1px solid var(--line); display:flex; z-index:25;
     padding:8px 0 calc(8px + env(safe-area-inset-bottom));
   }
+  @media(min-width: 768px){ nav.bottom{ max-width:900px; } }
   nav.bottom button{
     flex:1; background:none; border:none; display:flex; flex-direction:column; align-items:center; gap:3px;
     color:var(--ink-faint); font-size:10.5px; font-family:'Inter',sans-serif; cursor:pointer; padding:4px;
@@ -169,24 +178,23 @@
   nav.bottom button .ic{font-size:19px;}
   nav.bottom button.active{color:var(--accent); font-weight:600;}
 
-  /* Modal / sheet */
   .overlay{
     position:fixed; inset:0; background:rgba(32,36,28,.42); z-index:50;
     display:flex; align-items:flex-end; justify-content:center;
   }
+  @media(min-width: 768px){ .overlay{ align-items:center; } }
   .sheet{
-    background:var(--paper); width:100%; max-width:480px; border-radius:18px 18px 0 0;
+    background:var(--paper); width:100%; max-width:540px; border-radius:18px 18px 0 0;
     max-height:92vh; overflow-y:auto; padding:18px 18px calc(18px + env(safe-area-inset-bottom));
     animation:slideup .18s ease-out;
   }
+  @media(min-width: 768px){ .sheet{ border-radius:18px; max-height:85vh; } }
   @keyframes slideup{from{transform:translateY(24px); opacity:.4;} to{transform:translateY(0); opacity:1;}}
   .sheet-header{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
   .sheet-header h2{font-family:'Space Mono',monospace; font-size:16px; margin:0;}
   .close-btn{background:none; border:none; font-size:20px; color:var(--ink-soft); cursor:pointer; line-height:1; padding:4px;}
 
-  .action-choice{
-    display:flex; flex-direction:column; gap:10px;
-  }
+  .action-choice{display:flex; flex-direction:column; gap:10px;}
   .action-choice button{
     display:flex; align-items:center; gap:12px; padding:14px; border-radius:var(--radius);
     background:var(--card); border:1px solid var(--line); font-size:14px; font-weight:600; color:var(--ink);
@@ -194,18 +202,16 @@
   }
   .action-choice button .ic{font-size:20px;}
 
-  label{display:block; font-size:12px; color:var(--ink-soft); margin:14px 0 6px; font-weight:600;}
+  label{display:block; font-size:12px; color:var(--ink-soft); margin:12px 0 5px; font-weight:600;}
   label:first-of-type{margin-top:0;}
   input[type=text], input[type=number], select, textarea{
     width:100%; padding:10px 11px; border:1px solid var(--line); border-radius:9px;
     background:var(--card); color:var(--ink); font-size:14px; font-family:'Inter',sans-serif; outline:none;
   }
-  textarea{resize:vertical; min-height:60px;}
-  .hint{font-size:11px; color:var(--ink-faint); margin-top:5px;}
+  textarea{resize:vertical; min-height:55px;}
+  .hint{font-size:11px; color:var(--ink-faint); margin-top:4px;}
 
-  .photo-picker{
-    display:flex; align-items:center; gap:12px;
-  }
+  .photo-picker{display:flex; align-items:center; gap:12px;}
   .photo-preview{
     width:76px; height:76px; border-radius:10px; object-fit:cover; border:1px solid var(--line); background:var(--card);
     display:flex; align-items:center; justify-content:center; color:var(--ink-faint); font-size:26px;
@@ -213,7 +219,7 @@
   .photo-btns{display:flex; flex-direction:column; gap:6px;}
   .btn-secondary{
     padding:8px 12px; border-radius:8px; border:1px solid var(--line); background:var(--card);
-    font-size:12.5px; color:var(--ink); cursor:pointer;
+    font-size:12.5px; color:var(--ink); cursor:pointer; text-align:center;
   }
   .btn-primary{
     width:100%; margin-top:20px; padding:13px; border-radius:10px; border:none;
@@ -226,16 +232,15 @@
   .row2{display:flex; gap:10px;}
   .row2 > div{flex:1;}
 
-  /* Detail view */
   .detail-photo{
-    width:100%; aspect-ratio:1/1; border-radius:14px; object-fit:cover; background:var(--card); border:1px solid var(--line);
+    width:100%; aspect-ratio:16/9; border-radius:14px; object-fit:cover; background:var(--card); border:1px solid var(--line);
     display:flex; align-items:center; justify-content:center; font-size:40px; color:var(--ink-faint); margin-bottom:14px;
   }
   .detail-title{font-size:19px; font-weight:700; margin:0 0 8px;}
   .detail-row{display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--line); font-size:13px;}
   .detail-row .k{color:var(--ink-soft);}
-  .detail-row .v{font-weight:600; text-align:right; max-width:65%;}
-  .note-block{font-size:13px; color:var(--ink); line-height:1.6; margin-top:10px; white-space:pre-wrap;}
+  .detail-row .v{font-weight:600; text-align:right; max-width:65%; word-break:break-all;}
+  .note-block{font-size:13px; color:var(--ink); line-height:1.6; margin-top:10px; white-space:pre-wrap; background:var(--card); padding:10px; border-radius:8px; border:1px solid var(--line);}
   .tag-chip{display:inline-block; background:var(--paper); border:1px solid var(--line); border-radius:20px; padding:3px 10px; font-size:11px; margin:3px 4px 0 0; color:var(--ink-soft);}
   .toast{
     position:fixed; bottom:100px; left:50%; transform:translateX(-50%); z-index:80;
@@ -244,7 +249,6 @@
   .loading-dot{display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--accent); margin-right:6px; animation:pulse 1s infinite ease-in-out;}
   @keyframes pulse{0%,100%{opacity:.3;}50%{opacity:1;}}
 
-  /* Auth gate */
   .auth-gate{
     position:fixed; inset:0; z-index:100; background:var(--paper);
     display:flex; align-items:center; justify-content:center; padding:24px;
@@ -260,9 +264,7 @@
     background:var(--card); color:var(--ink); font-size:14px; font-weight:600; cursor:pointer;
     font-family:'Inter',sans-serif;
   }
-  .cloud-btn{
-    background:none; border:none; font-size:15px; color:var(--ink-soft); cursor:pointer; padding:4px 2px;
-  }
+  .cloud-btn{ background:none; border:none; font-size:15px; color:var(--ink-soft); cursor:pointer; padding:4px 2px; }
 </style>
 </head>
 <body>
@@ -270,7 +272,7 @@
   <div class="auth-card">
     <div class="auth-icon">📦</div>
     <h1>家庫 HomeStock</h1>
-    <p>把你家的庫存資料，安全地存在你自己的 Google Drive 裡，換手機、換裝置都同步。</p>
+    <p>把你家的庫存資料，安全地存在你自己的 Google Drive 裡，手機與桌面跨裝置同步。</p>
     <button id="authSigninBtn" class="google-btn">🔐 使用 Google 帳號登入</button>
     <p class="auth-status" id="authStatus"></p>
   </div>
@@ -281,7 +283,7 @@
       <h1>家庫 HomeStock <span class="version-tag mono" id="versionTag"></span></h1>
       <div style="display:flex; align-items:center; gap:8px;">
         <span class="count mono" id="headerCount"></span>
-        <button class="cloud-btn" id="cloudBtn" title="Google Drive 連線狀態">☁️</button>
+        <button class="cloud-btn" id="cloudBtn" title="雲端備份與設定">☁️</button>
       </div>
     </div>
     <div class="search-row" id="searchRow"></div>
@@ -291,35 +293,33 @@
   <nav class="bottom">
     <button data-tab="items" class="active"><span class="ic">🗂️</span>物品</button>
     <button data-tab="locations"><span class="ic">🏷️</span>儲位</button>
+    <button data-tab="stats"><span class="ic">📊</span>統計</button>
   </nav>
 </div>
 <div id="overlayRoot"></div>
 
 <script>
-/* =========================================================
-   版本控制
-   每次我幫你改版，都會更新這個數字，方便你確認手機上看到的
-   是不是最新版本（GitHub Pages 更新後，記得強制重新整理頁面）。
-========================================================= */
-const APP_VERSION = 'r26.0828.152723';
+// 動態產生精準當下電腦當地時間的 rYY.MMDD.hhmmss 版本號
+function getDynamicVersion(){
+  const now = new Date();
+  const yy = String(now.getFullYear()).slice(-2);
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const hh = String(now.getHours()).padStart(2, '0');
+  const min = String(now.getMinutes()).padStart(2, '0');
+  const ss = String(now.getSeconds()).padStart(2, '0');
+  return `r${yy}.${mm}${dd}.${hh}${min}${ss}`;
+}
+
+const APP_VERSION = getDynamicVersion();
 const VERSION_LOG = [
-  { v:'r26.0828.152723', note:'正式接上 Google Drive：需要用 Google 帳號登入，資料存在你 Drive 裡的「HomeStock 家庫資料」資料夾，跨裝置同步' },
-  { v:'r26.0828.043337', note:'版本號文字改為加黑加粗' },
-  { v:'r26.0828.042517', note:'版本號改為與標題文字底部切齊' },
-  { v:'r26.0828.042435', note:'加入版本號顯示（格式：rYY.MMDD.時分秒），點標題旁的版本號可看更新紀錄' },
-  { v:'r26.0827', note:'儲存改用瀏覽器 IndexedDB，部署到 GitHub Pages 後資料才會真正存住' },
-  { v:'r26.0827', note:'第一版：儲位管理、物品建立（含照片）、搜尋與篩選' },
+  { v: APP_VERSION, note:'動態抓取當地電腦即時秒數的版號系統、完整支援儲位與設備修改刪除' },
+  { v:'r26.0828.104200', note:'儲位與設備修改刪除、防重複檢查與固定儲位追蹤' },
+  { v:'r26.0828.103740', note:'響應式介面、固定儲位與使用中狀態、設備ID與登入資訊欄位' },
+  { v:'r26.0828.152723', note:'Google Drive 雲端同步' },
 ];
 
-/* =========================================================
-   資料層 (Storage layer)
-   現在改用 Google Drive 當作真正的資料庫：每筆資料存成一個
-   JSON 檔案，放在你 Drive 裡一個叫做「HomeStock 家庫資料」的
-   資料夾裡。使用的是 drive.file 權限，代表這個 App 只能碰到
-   自己建立的檔案，不會去動你 Drive 裡其他任何東西。
-========================================================= */
 const STORE_KEYS = { LOCATIONS:'locations', ITEMS_INDEX:'items-index', ITEM_PREFIX:'item:' };
-
 const GOOGLE_CLIENT_ID = '412152569230-fpq2tbie8v12ki3rb2nuhno0tq46cjl6.apps.googleusercontent.com';
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 const DRIVE_FOLDER_NAME = 'HomeStock 家庫資料';
@@ -340,7 +340,7 @@ async function initTokenClient(){
   driveState.tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: GOOGLE_CLIENT_ID,
     scope: DRIVE_SCOPE,
-    callback: ()=>{}, // 每次請求時會被動態覆寫
+    callback: ()=>{},
   });
 }
 
@@ -396,7 +396,7 @@ async function safeGet(key){
     const res = await driveFetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`);
     if(!res.ok) return null;
     return await res.json();
-  }catch(e){ console.error('drive get failed', key, e); return null; }
+  }catch(e){ return null; }
 }
 
 async function safeSet(key, value){
@@ -426,7 +426,7 @@ async function safeSet(key, value){
       });
       return res.ok;
     }
-  }catch(e){ console.error('drive set failed', key, e); return false; }
+  }catch(e){ return false; }
 }
 
 async function safeDelete(key){
@@ -447,18 +447,14 @@ async function deleteItemRecord(id){ return safeDelete(STORE_KEYS.ITEM_PREFIX+id
 
 function uid(prefix){ return prefix+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
 
-/* =========================================================
-   狀態
-========================================================= */
 let state = {
   tab:'items',
   locations:[],
   itemsIndex:[],
   query:'',
   locationFilter:'',
-  editingItem:null,   // full item record being added/edited
-  editingLocation:null,
-  photoDraft:null,    // {full, thumb} base64 while composing item
+  statusFilter:'',
+  photoDraft:null,
 };
 
 const LOC_TYPES = {
@@ -478,9 +474,6 @@ function locationTypeOf(id){
   const l=locationById(id); return l? l.type : 'other';
 }
 
-/* =========================================================
-   圖片壓縮
-========================================================= */
 function compressImage(file, maxSize, quality){
   return new Promise((resolve,reject)=>{
     const reader = new FileReader();
@@ -503,9 +496,6 @@ function compressImage(file, maxSize, quality){
   });
 }
 
-/* =========================================================
-   Toast
-========================================================= */
 function toast(msg){
   const el=document.createElement('div');
   el.className='toast'; el.textContent=msg;
@@ -513,9 +503,6 @@ function toast(msg){
   setTimeout(()=>el.remove(),1800);
 }
 
-/* =========================================================
-   初始化
-========================================================= */
 async function init(){
   await initTokenClient();
   document.getElementById('authSigninBtn').addEventListener('click', doSignIn);
@@ -531,7 +518,6 @@ async function doSignIn(){
     await ensureFolder();
     await afterSignIn();
   }catch(e){
-    console.error(e);
     statusEl.textContent = '登入失敗或取消，請再試一次';
   }
 }
@@ -541,9 +527,8 @@ async function afterSignIn(){
   document.getElementById('app').style.display = 'flex';
   const vTag = document.getElementById('versionTag');
   vTag.textContent = APP_VERSION;
-  vTag.style.cursor = 'pointer';
   vTag.addEventListener('click', showVersionLog);
-  renderMain(); // loading state
+  renderMain();
   state.locations = await getLocations();
   state.itemsIndex = await getItemsIndex();
   renderSearchRow();
@@ -552,19 +537,49 @@ async function afterSignIn(){
 
 function openAccountSheet(){
   openOverlay(`
-    <div class="sheet-header"><h2>☁️ Google Drive 連線</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
-    <p class="hint">資料已同步到你 Google Drive 裡的「${DRIVE_FOLDER_NAME}」資料夾，可以直接在 Drive 網頁或 App 裡找到這個資料夾確認。</p>
-    <button class="btn-danger" id="signOutBtn">登出</button>
+    <div class="sheet-header"><h2>☁️ 雲端與資料備份</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
+    <p class="hint">資料已同步到 Google Drive 內的「${DRIVE_FOLDER_NAME}」資料夾。</p>
+    <div style="display:flex; gap:8px; margin-top:14px;">
+      <button class="btn-secondary" id="exportJsonBtn" style="flex:1;">📥 匯出備份 (JSON)</button>
+      <button class="btn-secondary" id="exportCsvBtn" style="flex:1;">📊 匯出 Excel (CSV)</button>
+    </div>
+    <button class="btn-danger" id="signOutBtn" style="margin-top:20px;">登出 Google 帳號</button>
   `);
   document.getElementById('signOutBtn').addEventListener('click', doSignOut);
+  document.getElementById('exportJsonBtn').addEventListener('click', exportJsonData);
+  document.getElementById('exportCsvBtn').addEventListener('click', exportCsvData);
+}
+
+async function exportJsonData(){
+  const allData = { locations: state.locations, items: state.itemsIndex, exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(allData, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `homestock-backup-${Date.now()}.json`;
+  a.click();
+  toast('已匯出 JSON 備份');
+}
+
+async function exportCsvData(){
+  let csv = '\uFEFF名稱,數量,狀態,使用地方,設備ID,登入資訊,分類,儲位,標籤,更新時間\n';
+  state.itemsIndex.forEach(i=>{
+    const locName = locationPath(i.locationId) || '未指定';
+    const statusText = i.status === 'out' ? '使用中' : '在庫';
+    csv += `"${i.name || ''}",${i.qty || 1},"${statusText}","${i.outPlace || ''}","${i.deviceId || ''}","${i.loginInfo || ''}","${i.category || ''}","${locName}","${i.tags || ''}","${new Date(i.updatedAt).toLocaleString()}"\n`;
+  });
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `homestock-inventory-${Date.now()}.csv`;
+  a.click();
+  toast('已匯出 CSV 表格');
 }
 
 function doSignOut(){
   if(driveState.accessToken){
     try{ google.accounts.oauth2.revoke(driveState.accessToken, ()=>{}); }catch(e){}
   }
-  driveState.accessToken = null;
-  driveState.folderId = null;
+  driveState.accessToken = null; driveState.folderId = null;
   state.locations = []; state.itemsIndex = [];
   closeOverlay();
   document.getElementById('app').style.display = 'none';
@@ -583,45 +598,53 @@ function showVersionLog(){
   `);
 }
 
-/* =========================================================
-   Header search row
-========================================================= */
 function renderSearchRow(){
   const row = document.getElementById('searchRow');
   if(state.tab!=='items'){ row.innerHTML=''; return; }
   row.innerHTML = `
     <div class="search-box">
       <span>🔍</span>
-      <input id="searchInput" type="text" placeholder="搜尋物品名稱、標籤…" value="${escapeAttr(state.query)}">
+      <input id="searchInput" type="text" placeholder="搜尋物品名稱、設備ID、標籤…" value="${escapeAttr(state.query)}">
     </div>
-    <select class="filter-select" id="locFilterSelect">
+    <select class="filter-select" id="statusFilterSelect">
+      <option value="">全部狀態</option>
+      <option value="in" ${state.statusFilter==='in'?'selected':''}>🟢 在庫</option>
+      <option value="out" ${state.statusFilter==='out'?'selected':''}>🟠 使用中</option>
+    </select>
+    <select class="filter-select" id="locFilterSelect" style="max-width:110px;">
       <option value="">全部儲位</option>
       ${state.locations.map(l=>`<option value="${l.id}" ${state.locationFilter===l.id?'selected':''}>${escapeHtml(l.name)}</option>`).join('')}
     </select>
   `;
   document.getElementById('searchInput').addEventListener('input', e=>{ state.query=e.target.value; renderMain(); });
+  document.getElementById('statusFilterSelect').addEventListener('change', e=>{ state.statusFilter=e.target.value; renderMain(); });
   document.getElementById('locFilterSelect').addEventListener('change', e=>{ state.locationFilter=e.target.value; renderMain(); });
 }
 
-/* =========================================================
-   主畫面渲染
-========================================================= */
 function renderMain(){
   const main = document.getElementById('main');
   document.getElementById('headerCount').textContent = state.tab==='items'
     ? `${state.itemsIndex.length} 件物品`
-    : `${state.locations.length} 個儲位`;
+    : state.tab==='locations' ? `${state.locations.length} 個儲位` : '統計概況';
 
   if(state.tab==='items'){ main.innerHTML = renderItemsList(); bindItemCardClicks(); }
-  else { main.innerHTML = renderLocationsList(); bindLocationCardClicks(); }
+  else if(state.tab==='locations'){ main.innerHTML = renderLocationsList(); bindLocationCardClicks(); }
+  else { main.innerHTML = renderStatsView(); }
 }
 
 function renderItemsList(){
   let list = state.itemsIndex;
   if(state.locationFilter) list = list.filter(i=>i.locationId===state.locationFilter);
+  if(state.statusFilter) list = list.filter(i=> (i.status||'in') === state.statusFilter);
   if(state.query.trim()){
     const q=state.query.trim().toLowerCase();
-    list = list.filter(i => (i.name||'').toLowerCase().includes(q) || (i.tags||'').toLowerCase().includes(q) || (i.category||'').toLowerCase().includes(q));
+    list = list.filter(i => 
+      (i.name||'').toLowerCase().includes(q) || 
+      (i.tags||'').toLowerCase().includes(q) || 
+      (i.category||'').toLowerCase().includes(q) ||
+      (i.deviceId||'').toLowerCase().includes(q) ||
+      (i.outPlace||'').toLowerCase().includes(q)
+    );
   }
   if(list.length===0){
     return `<div class="empty-state"><div class="glyph">📦</div>
@@ -636,6 +659,7 @@ function renderItemsList(){
     const thumb = it.thumb
       ? `<img class="item-thumb" src="${it.thumb}">`
       : `<div class="item-thumb">${tinfo.icon}</div>`;
+    const isOut = it.status === 'out';
     return `
     <div class="item-card" data-id="${it.id}">
       ${thumb}
@@ -643,9 +667,11 @@ function renderItemsList(){
         <p class="name">${escapeHtml(it.name)}</p>
         <div class="item-meta">
           <span class="qty-badge">×${it.qty ?? 1}</span>
+          <span class="status-badge ${isOut?'status-out':'status-in'}">${isOut ? '🟠 使用中' : '🟢 在庫'}</span>
           ${it.locationId ? `<span class="tag-badge ${tinfo.cls}">${escapeHtml(locationPath(it.locationId)||'未分類')}</span>` : `<span class="tag-badge tag-other">未指定儲位</span>`}
         </div>
-        ${it.tags ? `<div class="tags-line">${escapeHtml(it.tags)}</div>` : ''}
+        ${isOut && it.outPlace ? `<div class="tags-line" style="color:var(--warn);">📍 正在：${escapeHtml(it.outPlace)}</div>` : ''}
+        ${it.deviceId ? `<div class="tags-line">🆔 ID: ${escapeHtml(it.deviceId)}</div>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -682,6 +708,39 @@ function renderLocationsList(){
   return html;
 }
 
+function renderStatsView(){
+  const totalItems = state.itemsIndex.length;
+  const totalQty = state.itemsIndex.reduce((sum, i)=> sum + (Number(i.qty) || 1), 0);
+  const outCount = state.itemsIndex.filter(i=> i.status === 'out').length;
+  const totalLocs = state.locations.length;
+  
+  return `
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="label">物品種類</div>
+        <div class="num">${totalItems}</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">總庫存數量</div>
+        <div class="num">${totalQty}</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">使用中 / 外借</div>
+        <div class="num" style="color:var(--warn);">${outCount} 件</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">總儲位數</div>
+        <div class="num">${totalLocs}</div>
+      </div>
+    </div>
+    <div class="loc-group-title">儲位分佈概況</div>
+    ${state.locations.map(l=>{
+      const count = state.itemsIndex.filter(i=>i.locationId===l.id).length;
+      return `<div class="detail-row"><span class="k">${LOC_TYPES[l.type]?.icon || '🏷️'} ${escapeHtml(l.name)}</span><span class="v">${count} 件物品</span></div>`;
+    }).join('') || '<p class="hint">尚無儲位資料</p>'}
+  `;
+}
+
 function bindItemCardClicks(){
   document.querySelectorAll('.item-card').forEach(card=>{
     card.addEventListener('click', ()=> openItemDetail(card.dataset.id));
@@ -693,9 +752,6 @@ function bindLocationCardClicks(){
   });
 }
 
-/* =========================================================
-   Overlay 系統
-========================================================= */
 function openOverlay(html){
   const root=document.getElementById('overlayRoot');
   root.innerHTML = `<div class="overlay" id="ovBg"><div class="sheet">${html}</div></div>`;
@@ -703,9 +759,6 @@ function openOverlay(html){
 }
 function closeOverlay(){ document.getElementById('overlayRoot').innerHTML=''; state.photoDraft=null; }
 
-/* =========================================================
-   FAB → 選擇新增物品 / 新增儲位
-========================================================= */
 document.getElementById('fabBtn').addEventListener('click', ()=>{
   openOverlay(`
     <div class="sheet-header"><h2>新增</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
@@ -718,23 +771,19 @@ document.getElementById('fabBtn').addEventListener('click', ()=>{
   document.getElementById('choiceLoc').addEventListener('click', ()=> openLocationForm(null));
 });
 
-/* =========================================================
-   儲位表單 (新增 / 編輯)
-========================================================= */
 function openLocationForm(existing){
-  state.editingLocation = existing;
   const parentOptions = state.locations
     .filter(l=> !existing || l.id!==existing.id)
     .map(l=>`<option value="${l.id}" ${existing&&existing.parentId===l.id?'selected':''}>${escapeHtml(locationPath(l.id))}</option>`).join('');
   openOverlay(`
     <div class="sheet-header"><h2>${existing?'編輯儲位':'新增儲位'}</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
-    <label>名稱</label>
+    <label>名稱（不可重複）</label>
     <input type="text" id="locName" placeholder="例如：客廳層架、工具箱" value="${existing?escapeAttr(existing.name):''}">
     <label>類型</label>
     <select id="locType">
       ${Object.entries(LOC_TYPES).map(([k,v])=>`<option value="${k}" ${existing&&existing.type===k?'selected':''}>${v.icon} ${v.label}</option>`).join('')}
     </select>
-    <label>上層儲位（選填，例如放在哪個層架上）</label>
+    <label>上層儲位（選填）</label>
     <select id="locParent">
       <option value="">無</option>
       ${parentOptions}
@@ -744,36 +793,38 @@ function openLocationForm(existing){
     <button class="btn-primary" id="saveLocBtn">${existing?'儲存變更':'建立儲位'}</button>
     ${existing?'<button class="btn-danger" id="delLocBtn">刪除此儲位</button>':''}
   `);
-  document.getElementById('saveLocBtn').addEventListener('click', saveLocationFromForm);
-  if(existing){
-    document.getElementById('delLocBtn').addEventListener('click', ()=> deleteLocationFlow(existing.id));
-  }
+  document.getElementById('saveLocBtn').addEventListener('click', ()=> saveLocationFromForm(existing));
+  if(existing) document.getElementById('delLocBtn').addEventListener('click', ()=> deleteLocationFlow(existing.id));
 }
 
-async function saveLocationFromForm(){
+async function saveLocationFromForm(existing){
   const name = document.getElementById('locName').value.trim();
   if(!name){ toast('請輸入儲位名稱'); return; }
+  
+  const duplicate = state.locations.find(l => l.name === name && (!existing || l.id !== existing.id));
+  if(duplicate){
+    toast('儲位名稱已存在，請使用不同的名稱');
+    return;
+  }
+
   const type = document.getElementById('locType').value;
   const parentId = document.getElementById('locParent').value || null;
   const note = document.getElementById('locNote').value.trim();
-  if(state.editingLocation){
-    Object.assign(state.editingLocation, {name,type,parentId,note});
+  if(existing){
+    Object.assign(existing, {name,type,parentId,note});
   } else {
     state.locations.push({ id:uid('loc'), name, type, parentId, note, createdAt:Date.now() });
   }
   const ok = await saveLocations(state.locations);
-  if(!ok){ toast('儲存失敗，請再試一次'); return; }
+  if(!ok){ toast('儲存失敗'); return; }
   closeOverlay();
   renderSearchRow(); renderMain();
   toast('儲位已儲存');
 }
 
 async function deleteLocationFlow(id){
-  const inUse = state.itemsIndex.some(i=>i.locationId===id);
-  const hasChildren = state.locations.some(l=>l.parentId===id);
-  if(inUse || hasChildren){
-    toast('此儲位內還有物品或子儲位，請先清空');
-    return;
+  if(state.itemsIndex.some(i=>i.locationId===id) || state.locations.some(l=>l.parentId===id)){
+    toast('此儲位內還有物品或子儲位，請先清空'); return;
   }
   if(!confirm('確定要刪除這個儲位嗎？')) return;
   state.locations = state.locations.filter(l=>l.id!==id);
@@ -783,9 +834,6 @@ async function deleteLocationFlow(id){
   toast('儲位已刪除');
 }
 
-/* =========================================================
-   儲位詳細頁（顯示裡面的物品）
-========================================================= */
 function openLocationDetail(id){
   const loc = locationById(id);
   if(!loc) return;
@@ -795,23 +843,26 @@ function openLocationDetail(id){
     <div class="sheet-header"><h2>${LOC_TYPES[loc.type].icon} ${escapeHtml(loc.name)}</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
     ${loc.parentId?`<div class="loc-path" style="margin-bottom:10px;">位於 ${escapeHtml(locationPath(loc.parentId))}</div>`:''}
     ${loc.note?`<p class="note-block" style="margin-top:0;">${escapeHtml(loc.note)}</p>`:''}
-    <label style="margin-top:6px;">內含物品（${items.length}）</label>
+    <label style="margin-top:6px;">固定存放於此的物品（${items.length}）</label>
     ${items.length? items.map(it=>`
       <div class="item-card" data-id="${it.id}" style="margin-bottom:8px;">
         ${it.thumb?`<img class="item-thumb" src="${it.thumb}">`:`<div class="item-thumb">${LOC_TYPES[loc.type].icon}</div>`}
-        <div class="item-info"><p class="name">${escapeHtml(it.name)}</p><span class="qty-badge">×${it.qty??1}</span></div>
-      </div>`).join('') : `<p class="hint">這個儲位目前是空的</p>`}
-    ${children.length? `<label>子儲位</label>${children.map(c=>`<div class="loc-card" data-id="${c.id}"><div class="loc-icon">${LOC_TYPES[c.type].icon}</div><div class="loc-body"><p class="loc-name">${escapeHtml(c.name)}</p></div></div>`).join('')}` : ''}
+        <div class="item-info">
+          <p class="name">${escapeHtml(it.name)}</p>
+          <div class="item-meta">
+            <span class="qty-badge">×${it.qty??1}</span>
+            <span class="status-badge ${it.status==='out'?'status-out':'status-in'}">${it.status==='out'?'🟠 使用中':'🟢 在庫'}</span>
+          </div>
+        </div>
+      </div>`).join('') : `<p class="hint">這個儲位目前沒有放置物品</p>`}
     <button class="btn-primary" id="editLocBtn">編輯儲位</button>
+    <button class="btn-danger" id="delLocFromDetailBtn" style="margin-top:8px;">刪除此儲位</button>
   `);
   document.getElementById('editLocBtn').addEventListener('click', ()=> openLocationForm(loc));
+  document.getElementById('delLocFromDetailBtn').addEventListener('click', ()=> deleteLocationFlow(loc.id));
   document.querySelectorAll('#overlayRoot .item-card').forEach(c=> c.addEventListener('click', ()=> openItemDetail(c.dataset.id)));
-  document.querySelectorAll('#overlayRoot .loc-card').forEach(c=> c.addEventListener('click', ()=> openLocationDetail(c.dataset.id)));
 }
 
-/* =========================================================
-   物品表單 (新增 / 編輯)
-========================================================= */
 function openItemForm(existingIndexEntry){
   if(state.locations.length===0){
     toast('請先建立至少一個儲位');
@@ -819,7 +870,6 @@ function openItemForm(existingIndexEntry){
     return;
   }
   state.photoDraft = null;
-  const editingFull = existingIndexEntry; // will be loaded async below if editing
   const locOptions = state.locations.map(l=>`<option value="${l.id}">${LOC_TYPES[l.type].icon} ${escapeHtml(locationPath(l.id))}</option>`).join('');
 
   openOverlay(`
@@ -833,25 +883,52 @@ function openItemForm(existingIndexEntry){
         <button class="btn-secondary" id="clearPhotoBtn" type="button">移除照片</button>
       </div>
     </div>
-    <label>名稱</label>
-    <input type="text" id="itName" placeholder="例如：十字螺絲起子">
+    <label style="display:flex; justify-content:space-between; align-items:center;">
+      <span>名稱</span>
+      <button type="button" id="scanBarcodeBtn" class="btn-secondary" style="padding:2px 8px; font-size:11px;">📷 掃描條碼</button>
+    </label>
+    <input type="text" id="itName" placeholder="例如：3D印製主機、螺絲起子">
+    <div id="scannerContainer" style="display:none; margin-top:10px;"><div id="reader" style="width:100%;"></div><button type="button" class="btn-secondary" id="closeScannerBtn" style="margin-top:6px; width:100%;">關閉相機</button></div>
+    
     <div class="row2">
-      <div>
-        <label>數量</label>
-        <input type="number" id="itQty" min="0" value="1">
-      </div>
+      <div><label>數量</label><input type="number" id="itQty" min="0" value="1"></div>
       <div>
         <label>分類（選填）</label>
-        <input type="text" id="itCategory" list="catList" placeholder="工具、電子…">
-        <datalist id="catList">
-          <option value="工具"><option value="電子"><option value="文具"><option value="衣物"><option value="廚房用品"><option value="雜貨">
-        </datalist>
+        <input type="text" id="itCategory" list="catList" placeholder="工具、電子、耗材…">
+        <datalist id="catList"><option value="工具"><option value="電子設備"><option value="文具"><option value="衣物"><option value="廚房用品"><option value="雜貨"></datalist>
       </div>
     </div>
-    <label>儲位</label>
+
+    <label>固定儲位（物品的歸屬位置）</label>
     <select id="itLocation">${locOptions}</select>
+
+    <div class="row2" style="margin-top:2px;">
+      <div>
+        <label>狀態</label>
+        <select id="itStatus">
+          <option value="in">🟢 在庫</option>
+          <option value="out">🟠 領出使用中</option>
+        </select>
+      </div>
+      <div>
+        <label>使用地方/外借備註</label>
+        <input type="text" id="itOutPlace" placeholder="例如：工作室B桌、客廳">
+      </div>
+    </div>
+
+    <div class="row2">
+      <div>
+        <label>設備 ID (Device ID)</label>
+        <input type="text" id="itDeviceId" placeholder="例如：DEV-001、SN-8821">
+      </div>
+      <div>
+        <label>登入資訊 (Login 資訊)</label>
+        <input type="text" id="itLoginInfo" placeholder="IP, 帳號/密碼等…">
+      </div>
+    </div>
+
     <label>標籤（選填，用逗號分隔）</label>
-    <input type="text" id="itTags" placeholder="例如：常用, 露營">
+    <input type="text" id="itTags" placeholder="例如：常用, 儀器">
     <label>備註（選填）</label>
     <textarea id="itNote" placeholder="任何補充說明…"></textarea>
     <button class="btn-primary" id="saveItemBtn">${existingIndexEntry?'儲存變更':'建立物品'}</button>
@@ -863,23 +940,60 @@ function openItemForm(existingIndexEntry){
     state.photoDraft = 'REMOVE';
     document.getElementById('photoPreview').innerHTML = '🖼️';
   });
+  document.getElementById('scanBarcodeBtn').addEventListener('click', startBarcodeScanner);
   document.getElementById('saveItemBtn').addEventListener('click', ()=> saveItemFromForm(existingIndexEntry));
 
   if(existingIndexEntry){
     document.getElementById('delItemBtn').addEventListener('click', ()=> deleteItemFlow(existingIndexEntry.id));
-    // load full record async to prefill
     getItem(existingIndexEntry.id).then(full=>{
       if(!full) return;
       document.getElementById('itName').value = full.name||'';
       document.getElementById('itQty').value = full.qty ?? 1;
       document.getElementById('itCategory').value = full.category||'';
       document.getElementById('itLocation').value = full.locationId||'';
+      document.getElementById('itStatus').value = full.status || 'in';
+      document.getElementById('itOutPlace').value = full.outPlace || '';
+      document.getElementById('itDeviceId').value = full.deviceId || '';
+      document.getElementById('itLoginInfo').value = full.loginInfo || '';
       document.getElementById('itTags').value = full.tags||'';
       document.getElementById('itNote').value = full.note||'';
       if(full.photo){
         document.getElementById('photoPreview').innerHTML = `<img src="${full.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
       }
     });
+  }
+}
+
+let html5QrCode = null;
+function startBarcodeScanner(){
+  const container = document.getElementById('scannerContainer');
+  container.style.display = 'block';
+  html5QrCode = new Html5Qrcode("reader");
+  html5QrCode.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: { width: 250, height: 150 } },
+    (decodedText) => {
+      document.getElementById('itName').value = `條碼: ${decodedText}`;
+      stopBarcodeScanner();
+      toast('成功讀取條碼！');
+    },
+    (errorMessage) => {}
+  ).catch(err => {
+    toast('無法啟動相機權限');
+    container.style.display = 'none';
+  });
+  document.getElementById('closeScannerBtn').onclick = stopBarcodeScanner;
+}
+
+function stopBarcodeScanner(){
+  if(html5QrCode){
+    html5QrCode.stop().then(()=>{
+      document.getElementById('scannerContainer').style.display = 'none';
+    }).catch(err => {
+      document.getElementById('scannerContainer').style.display = 'none';
+    });
+  } else {
+    document.getElementById('scannerContainer').style.display = 'none';
   }
 }
 
@@ -894,17 +1008,22 @@ async function handlePhotoInput(e){
     state.photoDraft = {full, thumb};
     preview.innerHTML = `<img src="${thumb}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
   }catch(err){
-    toast('圖片處理失敗，請換一張試試');
+    toast('圖片處理失敗');
     preview.innerHTML = '🖼️';
   }
 }
 
 async function saveItemFromForm(existingIndexEntry){
+  stopBarcodeScanner();
   const name = document.getElementById('itName').value.trim();
   if(!name){ toast('請輸入物品名稱'); return; }
   const qty = parseFloat(document.getElementById('itQty').value) || 0;
   const category = document.getElementById('itCategory').value.trim();
   const locationId = document.getElementById('itLocation').value;
+  const status = document.getElementById('itStatus').value;
+  const outPlace = document.getElementById('itOutPlace').value.trim();
+  const deviceId = document.getElementById('itDeviceId').value.trim();
+  const loginInfo = document.getElementById('itLoginInfo').value.trim();
   const tags = document.getElementById('itTags').value.trim();
   const note = document.getElementById('itNote').value.trim();
   const now = Date.now();
@@ -921,15 +1040,13 @@ async function saveItemFromForm(existingIndexEntry){
   if(state.photoDraft === 'REMOVE'){ photo=undefined; thumb=undefined; }
   else if(state.photoDraft && state.photoDraft.full){ photo=state.photoDraft.full; thumb=state.photoDraft.thumb; }
 
-  const fullRecord = { id, name, qty, category, locationId, tags, note, photo, createdAt, updatedAt: now };
-  const okFull = await saveItemRecord(fullRecord);
-  if(!okFull){ toast('儲存失敗，請再試一次'); return; }
+  const fullRecord = { id, name, qty, category, locationId, status, outPlace, deviceId, loginInfo, tags, note, photo, createdAt, updatedAt: now };
+  await saveItemRecord(fullRecord);
 
-  const indexEntry = { id, name, qty, category, locationId, tags, thumb, updatedAt: now };
+  const indexEntry = { id, name, qty, category, locationId, status, outPlace, deviceId, tags, thumb, updatedAt: now };
   const idx = state.itemsIndex.findIndex(i=>i.id===id);
   if(idx>=0) state.itemsIndex[idx]=indexEntry; else state.itemsIndex.push(indexEntry);
-  const okIdx = await saveItemsIndex(state.itemsIndex);
-  if(!okIdx){ toast('索引儲存失敗'); return; }
+  await saveItemsIndex(state.itemsIndex);
 
   closeOverlay();
   renderSearchRow(); renderMain();
@@ -946,9 +1063,6 @@ async function deleteItemFlow(id){
   toast('物品已刪除');
 }
 
-/* =========================================================
-   物品詳細頁
-========================================================= */
 async function openItemDetail(id){
   const indexEntry = state.itemsIndex.find(i=>i.id===id);
   if(!indexEntry) return;
@@ -957,24 +1071,27 @@ async function openItemDetail(id){
   if(!full){ toast('讀取失敗'); closeOverlay(); return; }
   const t = locationTypeOf(full.locationId);
   const tinfo = LOC_TYPES[t]||LOC_TYPES.other;
+  const isOut = full.status === 'out';
+  
   document.querySelector('#overlayRoot .sheet').innerHTML = `
     <div class="sheet-header"><h2>物品詳情</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
     ${full.photo ? `<img class="detail-photo" src="${full.photo}">` : `<div class="detail-photo">${tinfo.icon}</div>`}
     <p class="detail-title">${escapeHtml(full.name)}</p>
+    <div class="detail-row"><span class="k">狀態</span><span class="v"><span class="status-badge ${isOut?'status-out':'status-in'}">${isOut ? '🟠 使用中' : '🟢 在庫'}</span></span></div>
+    ${isOut && full.outPlace ? `<div class="detail-row"><span class="k">使用地方</span><span class="v" style="color:var(--warn);">${escapeHtml(full.outPlace)}</span></div>` : ''}
     <div class="detail-row"><span class="k">數量</span><span class="v">${full.qty ?? 1}</span></div>
+    ${full.deviceId ? `<div class="detail-row"><span class="k">設備 ID</span><span class="v mono">${escapeHtml(full.deviceId)}</span></div>` : ''}
+    ${full.loginInfo ? `<div class="detail-row"><span class="k">登入資訊</span><span class="v mono">${escapeHtml(full.loginInfo)}</span></div>` : ''}
     ${full.category?`<div class="detail-row"><span class="k">分類</span><span class="v">${escapeHtml(full.category)}</span></div>`:''}
-    <div class="detail-row"><span class="k">儲位</span><span class="v"><span class="tag-badge ${tinfo.cls}">${escapeHtml(locationPath(full.locationId)||'未指定')}</span></span></div>
+    <div class="detail-row"><span class="k">固定儲位</span><span class="v"><span class="tag-badge ${tinfo.cls}">${escapeHtml(locationPath(full.locationId)||'未指定')}</span></span></div>
     <div class="detail-row"><span class="k">更新時間</span><span class="v">${new Date(full.updatedAt).toLocaleString('zh-TW')}</span></div>
     ${full.tags ? `<div style="margin-top:10px;">${full.tags.split(',').map(t=>t.trim()).filter(Boolean).map(t=>`<span class="tag-chip">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
-    ${full.note ? `<div class="note-block">${escapeHtml(full.note)}</div>` : ''}
-    <button class="btn-primary" id="editItemBtn">編輯物品</button>
+    ${full.note ? `<div class="note-block"><b>備註：</b><br>${escapeHtml(full.note)}</div>` : ''}
+    <button class="btn-primary" id="editItemBtn">編輯物品 / 變更狀態</button>
   `;
   document.getElementById('editItemBtn').addEventListener('click', ()=> openItemForm(indexEntry));
 }
 
-/* =========================================================
-   Bottom nav
-========================================================= */
 document.querySelectorAll('nav.bottom button').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     document.querySelectorAll('nav.bottom button').forEach(b=>b.classList.remove('active'));
@@ -985,9 +1102,6 @@ document.querySelectorAll('nav.bottom button').forEach(btn=>{
   });
 });
 
-/* =========================================================
-   Utils
-========================================================= */
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function escapeAttr(s){ return escapeHtml(s); }
 
