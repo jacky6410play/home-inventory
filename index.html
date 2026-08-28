@@ -6,6 +6,7 @@
 <title>家庫 · 家用庫存管理</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root{
     --paper:#F1EEE2;
@@ -242,14 +243,46 @@
   }
   .loading-dot{display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--accent); margin-right:6px; animation:pulse 1s infinite ease-in-out;}
   @keyframes pulse{0%,100%{opacity:.3;}50%{opacity:1;}}
+
+  /* Auth gate */
+  .auth-gate{
+    position:fixed; inset:0; z-index:100; background:var(--paper);
+    display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .auth-card{ width:100%; max-width:340px; text-align:center; }
+  .auth-icon{ font-size:44px; margin-bottom:14px; }
+  .auth-card h1{ font-family:'Space Mono',monospace; font-size:21px; margin:0 0 10px; }
+  .auth-card p{ font-size:13px; color:var(--ink-soft); line-height:1.6; margin:0; }
+  .auth-status{ margin-top:14px; font-size:12px; color:var(--ink-faint); min-height:16px; }
+  .google-btn{
+    display:flex; align-items:center; justify-content:center; gap:10px; width:100%;
+    margin-top:22px; padding:12px; border-radius:10px; border:1px solid var(--line);
+    background:var(--card); color:var(--ink); font-size:14px; font-weight:600; cursor:pointer;
+    font-family:'Inter',sans-serif;
+  }
+  .cloud-btn{
+    background:none; border:none; font-size:15px; color:var(--ink-soft); cursor:pointer; padding:4px 2px;
+  }
 </style>
 </head>
 <body>
-<div id="app">
+<div id="authGate" class="auth-gate">
+  <div class="auth-card">
+    <div class="auth-icon">📦</div>
+    <h1>家庫 HomeStock</h1>
+    <p>把你家的庫存資料，安全地存在你自己的 Google Drive 裡，換手機、換裝置都同步。</p>
+    <button id="authSigninBtn" class="google-btn">🔐 使用 Google 帳號登入</button>
+    <p class="auth-status" id="authStatus"></p>
+  </div>
+</div>
+<div id="app" style="display:none;">
   <header class="top">
     <div class="brand">
       <h1>家庫 HomeStock <span class="version-tag mono" id="versionTag"></span></h1>
-      <span class="count mono" id="headerCount"></span>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="count mono" id="headerCount"></span>
+        <button class="cloud-btn" id="cloudBtn" title="Google Drive 連線狀態">☁️</button>
+      </div>
     </div>
     <div class="search-row" id="searchRow"></div>
   </header>
@@ -268,8 +301,9 @@
    每次我幫你改版，都會更新這個數字，方便你確認手機上看到的
    是不是最新版本（GitHub Pages 更新後，記得強制重新整理頁面）。
 ========================================================= */
-const APP_VERSION = 'r26.0828.043337';
+const APP_VERSION = 'r26.0828.152723';
 const VERSION_LOG = [
+  { v:'r26.0828.152723', note:'正式接上 Google Drive：需要用 Google 帳號登入，資料存在你 Drive 裡的「HomeStock 家庫資料」資料夾，跨裝置同步' },
   { v:'r26.0828.043337', note:'版本號文字改為加黑加粗' },
   { v:'r26.0828.042517', note:'版本號改為與標題文字底部切齊' },
   { v:'r26.0828.042435', note:'加入版本號顯示（格式：rYY.MMDD.時分秒），點標題旁的版本號可看更新紀錄' },
@@ -279,61 +313,127 @@ const VERSION_LOG = [
 
 /* =========================================================
    資料層 (Storage layer)
-   目前使用瀏覽器內建的 IndexedDB 當作示範資料庫——這是標準
-   瀏覽器功能，不管是本機打開、還是部署到 GitHub Pages 之後，
-   資料都會真正存在「這支手機、這個瀏覽器」裡，重開機、重新整理
-   都不會消失，但換一台裝置或清除瀏覽器資料就會不見。
-   之後若要換成 Google Drive，只需要改寫這一段
-   (getLocations / saveLocations / getItemsIndex / saveItemsIndex /
-    getItem / saveItem / deleteItemRecord) 的實作即可，
-   上層的畫面與邏輯完全不用動。
+   現在改用 Google Drive 當作真正的資料庫：每筆資料存成一個
+   JSON 檔案，放在你 Drive 裡一個叫做「HomeStock 家庫資料」的
+   資料夾裡。使用的是 drive.file 權限，代表這個 App 只能碰到
+   自己建立的檔案，不會去動你 Drive 裡其他任何東西。
 ========================================================= */
 const STORE_KEYS = { LOCATIONS:'locations', ITEMS_INDEX:'items-index', ITEM_PREFIX:'item:' };
 
-const DB_NAME = 'homestock-db';
-const DB_STORE = 'kv';
-let dbPromise = null;
-function openDB(){
-  if(dbPromise) return dbPromise;
-  dbPromise = new Promise((resolve,reject)=>{
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = ()=>{ req.result.createObjectStore(DB_STORE, {keyPath:'key'}); };
-    req.onsuccess = ()=> resolve(req.result);
-    req.onerror = ()=> reject(req.error);
+const GOOGLE_CLIENT_ID = '412152569230-fpq2tbie8v12ki3rb2nuhno0tq46cjl6.apps.googleusercontent.com';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+const DRIVE_FOLDER_NAME = 'HomeStock 家庫資料';
+
+let driveState = { accessToken:null, tokenClient:null, folderId:null };
+
+function waitForGoogle(){
+  return new Promise(resolve=>{
+    (function tryInit(){
+      if(window.google && google.accounts && google.accounts.oauth2) resolve();
+      else setTimeout(tryInit, 100);
+    })();
   });
-  return dbPromise;
 }
+
+async function initTokenClient(){
+  await waitForGoogle();
+  driveState.tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID,
+    scope: DRIVE_SCOPE,
+    callback: ()=>{}, // 每次請求時會被動態覆寫
+  });
+}
+
+function requestAccessToken(interactive){
+  return new Promise((resolve, reject)=>{
+    driveState.tokenClient.callback = (resp)=>{
+      if(resp.error){ reject(resp); return; }
+      driveState.accessToken = resp.access_token;
+      resolve(resp.access_token);
+    };
+    driveState.tokenClient.requestAccessToken({ prompt: interactive ? 'consent' : '' });
+  });
+}
+
+async function driveFetch(url, options={}, allowRetry=true){
+  options.headers = Object.assign({}, options.headers, { 'Authorization': 'Bearer '+driveState.accessToken });
+  const res = await fetch(url, options);
+  if(res.status===401 && allowRetry){
+    await requestAccessToken(false);
+    return driveFetch(url, options, false);
+  }
+  return res;
+}
+
+async function ensureFolder(){
+  if(driveState.folderId) return driveState.folderId;
+  const q = encodeURIComponent(`name='${DRIVE_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+  const res = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`);
+  const data = await res.json();
+  if(data.files && data.files.length>0){ driveState.folderId = data.files[0].id; return driveState.folderId; }
+  const createRes = await driveFetch('https://www.googleapis.com/drive/v3/files', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ name: DRIVE_FOLDER_NAME, mimeType:'application/vnd.google-apps.folder' }),
+  });
+  const created = await createRes.json();
+  driveState.folderId = created.id;
+  return driveState.folderId;
+}
+
+async function findFileId(name){
+  const folderId = await ensureFolder();
+  const q = encodeURIComponent(`name='${name}' and '${folderId}' in parents and trashed=false`);
+  const res = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`);
+  const data = await res.json();
+  return (data.files && data.files[0]) ? data.files[0].id : null;
+}
+
 async function safeGet(key){
   try{
-    const db = await openDB();
-    return await new Promise(resolve=>{
-      const tx = db.transaction(DB_STORE,'readonly');
-      const req = tx.objectStore(DB_STORE).get(key);
-      req.onsuccess = ()=> resolve(req.result ? req.result.value : null);
-      req.onerror = ()=> resolve(null);
-    });
-  }catch(e){ console.error('storage get failed', key, e); return null; }
+    const fileId = await findFileId(key+'.json');
+    if(!fileId) return null;
+    const res = await driveFetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`);
+    if(!res.ok) return null;
+    return await res.json();
+  }catch(e){ console.error('drive get failed', key, e); return null; }
 }
+
 async function safeSet(key, value){
   try{
-    const db = await openDB();
-    return await new Promise(resolve=>{
-      const tx = db.transaction(DB_STORE,'readwrite');
-      tx.objectStore(DB_STORE).put({key, value});
-      tx.oncomplete = ()=> resolve(true);
-      tx.onerror = ()=> resolve(false);
-    });
-  }catch(e){ console.error('storage set failed', key, e); return false; }
+    const folderId = await ensureFolder();
+    const name = key+'.json';
+    const existingId = await findFileId(name);
+    const content = JSON.stringify(value);
+    if(existingId){
+      const res = await driveFetch(`https://www.googleapis.com/upload/drive/v3/files/${existingId}?uploadType=media`, {
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body: content,
+      });
+      return res.ok;
+    } else {
+      const boundary = 'homestock-'+Date.now();
+      const metadata = { name, parents:[folderId] };
+      const body =
+        `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`+
+        `--${boundary}\r\nContent-Type: application/json\r\n\r\n${content}\r\n`+
+        `--${boundary}--`;
+      const res = await driveFetch(`https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`, {
+        method:'POST',
+        headers:{'Content-Type': `multipart/related; boundary=${boundary}`},
+        body,
+      });
+      return res.ok;
+    }
+  }catch(e){ console.error('drive set failed', key, e); return false; }
 }
+
 async function safeDelete(key){
   try{
-    const db = await openDB();
-    await new Promise(resolve=>{
-      const tx = db.transaction(DB_STORE,'readwrite');
-      tx.objectStore(DB_STORE).delete(key);
-      tx.oncomplete = ()=> resolve();
-      tx.onerror = ()=> resolve();
-    });
+    const fileId = await findFileId(key+'.json');
+    if(!fileId) return;
+    await driveFetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, { method:'DELETE' });
   }catch(e){}
 }
 
@@ -417,6 +517,28 @@ function toast(msg){
    初始化
 ========================================================= */
 async function init(){
+  await initTokenClient();
+  document.getElementById('authSigninBtn').addEventListener('click', doSignIn);
+  document.getElementById('cloudBtn').addEventListener('click', openAccountSheet);
+}
+
+async function doSignIn(){
+  const statusEl = document.getElementById('authStatus');
+  statusEl.innerHTML = '<span class="loading-dot"></span>連線中…';
+  try{
+    await requestAccessToken(true);
+    statusEl.textContent = '準備資料夾…';
+    await ensureFolder();
+    await afterSignIn();
+  }catch(e){
+    console.error(e);
+    statusEl.textContent = '登入失敗或取消，請再試一次';
+  }
+}
+
+async function afterSignIn(){
+  document.getElementById('authGate').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
   const vTag = document.getElementById('versionTag');
   vTag.textContent = APP_VERSION;
   vTag.style.cursor = 'pointer';
@@ -426,6 +548,28 @@ async function init(){
   state.itemsIndex = await getItemsIndex();
   renderSearchRow();
   renderMain();
+}
+
+function openAccountSheet(){
+  openOverlay(`
+    <div class="sheet-header"><h2>☁️ Google Drive 連線</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
+    <p class="hint">資料已同步到你 Google Drive 裡的「${DRIVE_FOLDER_NAME}」資料夾，可以直接在 Drive 網頁或 App 裡找到這個資料夾確認。</p>
+    <button class="btn-danger" id="signOutBtn">登出</button>
+  `);
+  document.getElementById('signOutBtn').addEventListener('click', doSignOut);
+}
+
+function doSignOut(){
+  if(driveState.accessToken){
+    try{ google.accounts.oauth2.revoke(driveState.accessToken, ()=>{}); }catch(e){}
+  }
+  driveState.accessToken = null;
+  driveState.folderId = null;
+  state.locations = []; state.itemsIndex = [];
+  closeOverlay();
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('authGate').style.display = 'flex';
+  document.getElementById('authStatus').textContent = '';
 }
 
 function showVersionLog(){
