@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <!-- IDENTIFIER: HOMESTOCK-GITHUB-DEPLOY -->
-<!-- VERSION: r26.0828.203111 -->
+<!-- VERSION: r26.0828.204412 -->
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -20,9 +20,8 @@
     --ink-faint:#9A9C8F;
     --line:#DCD6C4;
     --shelf:#B8842E;
-    --drawer:#2E6B6E;
-    --box:#A6512E;
-    --other:#6C6F63;
+    --storage:#A6512E;
+    --location:#2E6B6E;
     --accent:#2E6B6E;
     --accent-ink:#FFFFFF;
     --danger:#B23A34;
@@ -88,9 +87,7 @@
     }
   }
 
-  #desktopDetailPane {
-    display: none;
-  }
+  #desktopDetailPane { display: none; }
 
   .mono{font-family:'Space Mono',monospace;}
 
@@ -163,10 +160,9 @@
     content:''; position:absolute; left:4px; top:50%; transform:translateY(-50%);
     width:3.5px; height:3.5px; border-radius:50%; background:rgba(255,255,255,.9);
   }
+  .tag-location{background:var(--location);}
   .tag-shelf{background:var(--shelf);}
-  .tag-drawer{background:var(--drawer);}
-  .tag-box{background:var(--box);}
-  .tag-other{background:var(--other);}
+  .tag-storage{background:var(--storage);}
   .tags-line{font-size:11px; color:var(--ink-faint); margin-top:2px;}
 
   .loc-group-title{
@@ -214,17 +210,13 @@
     position:fixed; inset:0; background:rgba(32,36,28,.42); z-index:50;
     display:flex; align-items:flex-end; justify-content:center;
   }
-  @media (min-width: 768px) {
-    .overlay { align-items: center; }
-  }
+  @media (min-width: 768px) { .overlay { align-items: center; } }
   .sheet{
     background:var(--paper); width:100%; max-width:480px; border-radius:18px 18px 0 0;
     max-height:92vh; overflow-y:auto; padding:18px 18px calc(18px + env(safe-area-inset-bottom));
     animation:slideup .18s ease-out;
   }
-  @media (min-width: 768px) {
-    .sheet { border-radius: 18px; max-width: 540px; }
-  }
+  @media (min-width: 768px) { .sheet { border-radius: 18px; max-width: 540px; } }
   @keyframes slideup{from{transform:translateY(24px); opacity:.4;} to{transform:translateY(0); opacity:1;}}
   .sheet-header{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
   .sheet-header h2{font-family:'Space Mono',monospace; font-size:16px; margin:0;}
@@ -340,7 +332,7 @@
   </header>
   <main id="main"></main>
   <div id="desktopDetailPane">
-    <div class="empty-state"><div class="glyph">👈</div><p>Select an item or location from the left to view details</p></div>
+    <div class="empty-state"><div class="glyph">👈</div><p>Select an item or container from the left to view details</p></div>
   </div>
   <button class="fab" id="fabBtn">＋</button>
   <nav class="bottom">
@@ -352,7 +344,6 @@
 <div id="overlayRoot"></div>
 
 <script>
-// Dynamically generate version string using current system time (including real seconds)
 function getDynamicVersion(){
   const now = new Date();
   const yy = String(now.getFullYear()).slice(-2);
@@ -366,10 +357,8 @@ function getDynamicVersion(){
 
 const APP_VERSION = getDynamicVersion();
 const VERSION_LOG = [
-  { v: APP_VERSION, note:'Added smart photo purpose splitting (appearance photos for matching only, spec sheets saved for OCR), auto quantity accumulation, and smart location suggestion.' },
-  { v:'r26.0828.202450', note:'Upgraded desktop view to true split-screen dual-column layout.' },
-  { v:'r26.0828.202245', note:'Added multi-photo support and client-side OCR parsing for spec sheet images.' },
-  { v:'r26.0828.202345', note:'Added responsive design for automatic mobile and desktop layout switching.' },
+  { v: APP_VERSION, note:'Refined storage types: Box, Drawer, and Cabinet under Storage tier.' },
+  { v:'r26.0828.204105', note:'Redefined hierarchy: Location > Shelf > Storage, with dependency validation.' },
 ];
 
 const STORE_KEYS = { LOCATIONS:'locations', ITEMS_INDEX:'items-index', ITEM_PREFIX:'item:' };
@@ -510,23 +499,25 @@ let state = {
   query:'',
   locationFilter:'',
   photosDraft:[],
-  matchedExistingItem:null, // Tracks if identical item is matched for quantity increment & location suggestion
+  matchedExistingItem:null,
 };
 
-const LOC_TYPES = {
-  location:{label:'Location', icon:'📍', cls:'tag-other'},
+const CONTAINER_TYPES = {
+  location:{label:'Location (最大存放地)', icon:'🏠', cls:'tag-location'},
   shelf:{label:'Shelf (料架)', icon:'📚', cls:'tag-shelf'},
-  box:{label:'Box', icon:'📦', cls:'tag-box'},
+  box:{label:'Box (箱子)', icon:'📦', cls:'tag-storage'},
+  drawer:{label:'Drawer (抽屜)', icon:'🗄️', cls:'tag-storage'},
+  cabinet:{label:'Cabinet (櫃子)', icon:'🚪', cls:'tag-storage'},
 };
 
-function locationById(id){ return state.locations.find(l=>l.id===id); }
-function locationPath(id){
-  const parts=[]; let cur=locationById(id); let guard=0;
-  while(cur && guard<8){ parts.unshift(cur.name); cur = cur.parentId? locationById(cur.parentId): null; guard++; }
+function containerById(id){ return state.locations.find(l=>l.id===id); }
+function containerPath(id){
+  const parts=[]; let cur=containerById(id); let guard=0;
+  while(cur && guard<8){ parts.unshift(cur.name); cur = cur.parentId? containerById(cur.parentId): null; guard++; }
   return parts.join(' › ');
 }
-function locationTypeOf(id){
-  const l=locationById(id); return l? l.type : 'location';
+function containerTypeOf(id){
+  const l=containerById(id); return l? l.type : 'location';
 }
 
 function compressImage(file, maxSize, quality){
@@ -625,9 +616,9 @@ async function exportJsonData(){
 }
 
 async function exportCsvData(){
-  let csv = '\uFEFFName,Quantity,Category,Location/Box/Shelf,Tags,Updated\n';
+  let csv = '\uFEFFName,Quantity,Category,Placement,Tags,Updated\n';
   state.itemsIndex.forEach(i=>{
-    const locName = locationPath(i.locationId) || 'Unassigned';
+    const locName = containerPath(i.locationId) || 'Unassigned';
     csv += `"${i.name || ''}",${i.qty || 1},"${i.category || ''}","${locName}","${i.tags || ''}","${new Date(i.updatedAt).toLocaleString()}"\n`;
   });
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
@@ -670,7 +661,7 @@ function renderSearchRow(){
       <input id="searchInput" type="text" placeholder="Search name, tags..." value="${escapeAttr(state.query)}">
     </div>
     <select class="filter-select" id="locFilterSelect">
-      <option value="">All Containers</option>
+      <option value="">All Placements</option>
       ${state.locations.map(l=>`<option value="${l.id}" ${state.locationFilter===l.id?'selected':''}>${escapeHtml(l.name)}</option>`).join('')}
     </select>
   `;
@@ -704,8 +695,8 @@ function renderItemsList(){
   }
   list = [...list].sort((a,b)=> (b.updatedAt||0)-(a.updatedAt||0));
   return list.map(it=>{
-    const t = locationTypeOf(it.locationId);
-    const tinfo = LOC_TYPES[t] || LOC_TYPES.location;
+    const t = containerTypeOf(it.locationId);
+    const tinfo = CONTAINER_TYPES[t] || CONTAINER_TYPES.location;
     const thumb = it.thumb
       ? `<img class="item-thumb" src="${it.thumb}">`
       : `<div class="item-thumb">${tinfo.icon}</div>`;
@@ -716,7 +707,7 @@ function renderItemsList(){
         <p class="name">${escapeHtml(it.name)}</p>
         <div class="item-meta">
           <span class="qty-badge">×${it.qty ?? 1}</span>
-          ${it.locationId ? `<span class="tag-badge ${tinfo.cls}">${escapeHtml(locationPath(it.locationId)||'Unclassified')}</span>` : `<span class="tag-badge tag-other">No Container</span>`}
+          ${it.locationId ? `<span class="tag-badge ${tinfo.cls}">${escapeHtml(containerPath(it.locationId)||'Unclassified')}</span>` : `<span class="tag-badge tag-location">No Placement</span>`}
         </div>
         ${it.tags ? `<div class="tags-line">${escapeHtml(it.tags)}</div>` : ''}
       </div>
@@ -727,26 +718,26 @@ function renderItemsList(){
 function renderLocationsList(){
   if(state.locations.length===0){
     return `<div class="empty-state"><div class="glyph">🏷️</div>
-      <p>No locations, boxes, or shelves created yet</p>
-      <p>Create a Location, Box, or Shelf first</p>
+      <p>No locations, shelves, or storage units created yet</p>
+      <p>Create a Location first</p>
     </div>`;
   }
-  const groups = {location:[],shelf:[],box:[]};
+  const groups = {location:[],shelf:[],box:[],drawer:[],cabinet:[]};
   state.locations.forEach(l=> (groups[l.type]||groups.location).push(l));
   let html='';
-  Object.keys(LOC_TYPES).forEach(typeKey=>{
+  ['location','shelf','box','drawer','cabinet'].forEach(typeKey=>{
     const arr = groups[typeKey];
     if(!arr || arr.length===0) return;
-    html += `<div class="loc-group-title">${LOC_TYPES[typeKey].icon} ${LOC_TYPES[typeKey].label} · ${arr.length}</div>`;
+    html += `<div class="loc-group-title">${CONTAINER_TYPES[typeKey].icon} ${CONTAINER_TYPES[typeKey].label} · ${arr.length}</div>`;
     html += arr.map(l=>{
       const count = state.itemsIndex.filter(i=>i.locationId===l.id).length;
-      const path = l.parentId ? locationPath(l.parentId) : '';
+      const path = l.parentId ? containerPath(l.parentId) : '';
       return `
       <div class="loc-card" data-id="${l.id}">
-        <div class="loc-icon">${LOC_TYPES[l.type]?.icon || '📍'}</div>
+        <div class="loc-icon">${CONTAINER_TYPES[l.type]?.icon || '🏠'}</div>
         <div class="loc-body">
           <p class="loc-name">${escapeHtml(l.name)}</p>
-          ${path ? `<div class="loc-path">Contained in ${escapeHtml(path)}</div>` : ''}
+          ${path ? `<div class="loc-path">In ${escapeHtml(path)}</div>` : ''}
         </div>
         <div class="loc-count">${count} items</div>
       </div>`;
@@ -782,7 +773,7 @@ function renderStatsView(){
     <div class="loc-group-title">Container Distribution</div>
     ${state.locations.map(l=>{
       const count = state.itemsIndex.filter(i=>i.locationId===l.id).length;
-      return `<div class="detail-row"><span class="k">${LOC_TYPES[l.type]?.icon || '📍'} ${escapeHtml(l.name)}</span><span class="v">${count} items</span></div>`;
+      return `<div class="detail-row"><span class="k">${CONTAINER_TYPES[l.type]?.icon || '🏠'} ${escapeHtml(l.name)}</span><span class="v">${count} items</span></div>`;
     }).join('') || '<p class="hint">No container data available</p>'}
   `;
 }
@@ -790,22 +781,16 @@ function renderStatsView(){
 function bindItemCardClicks(){
   document.querySelectorAll('.item-card').forEach(card=>{
     card.addEventListener('click', ()=>{
-      if(window.innerWidth >= 768){
-        openItemDetailDesktop(card.dataset.id);
-      } else {
-        openItemDetail(card.dataset.id);
-      }
+      if(window.innerWidth >= 768){ openItemDetailDesktop(card.dataset.id); }
+      else { openItemDetail(card.dataset.id); }
     });
   });
 }
 function bindLocationCardClicks(){
   document.querySelectorAll('.loc-card').forEach(card=>{
     card.addEventListener('click', ()=>{
-      if(window.innerWidth >= 768){
-        openLocationDetailDesktop(card.dataset.id);
-      } else {
-        openLocationDetail(card.dataset.id);
-      }
+      if(window.innerWidth >= 768){ openLocationDetailDesktop(card.dataset.id); }
+      else { openLocationDetail(card.dataset.id); }
     });
   });
 }
@@ -822,79 +807,79 @@ document.getElementById('fabBtn').addEventListener('click', ()=>{
     <div class="sheet-header"><h2>Create New</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
     <div class="action-choice">
       <button id="choiceItem"><span class="ic">🗂️</span>New Item</button>
-      <button id="choiceLoc"><span class="ic">🏷️</span>New Location / Box / Shelf</button>
+      <button id="choiceLoc"><span class="ic">🏷️</span>New Container (Location/Shelf/Storage)</button>
     </div>
   `);
   document.getElementById('choiceItem').addEventListener('click', ()=> openItemForm(null));
-  document.getElementById('choiceLoc').addEventListener('click', ()=> openLocationForm(null));
+  document.getElementById('choiceLoc').addEventListener('click', ()=> openContainerForm(null));
 });
 
-function openLocationForm(existing){
+function openContainerForm(existing){
   const currentType = existing ? existing.type : 'location';
-  const parentOptions = state.locations
-    .filter(l=> !existing || l.id!==existing.id)
-    .filter(l=>{
-      if(currentType === 'shelf') return l.type === 'location';
-      if(currentType === 'box') return l.type === 'location' || l.type === 'shelf';
-      if(currentType === 'location') return false;
-      return true;
-    })
-    .map(l=>`<option value="${l.id}" ${existing&&existing.parentId===l.id?'selected':''}>${escapeHtml(locationPath(l.id))}</option>`).join('');
 
   openOverlay(`
-    <div class="sheet-header"><h2>${existing?'Edit Container':'New Location / Box / Shelf'}</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
+    <div class="sheet-header"><h2>${existing?'Edit Container':'New Container'}</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
     <label>Name</label>
-    <input type="text" id="locName" placeholder="e.g. Living Room, Shelf A, Box 1" value="${existing?escapeAttr(existing.name):''}">
-    <label>Type</label>
-    <select id="locType" onchange="updateParentOptionsForType(this.value)">
-      <option value="location" ${currentType==='location'?'selected':''}>📍 Location (儲位)</option>
+    <input type="text" id="conName" placeholder="e.g. Living Room, Shelf A, Box 1" value="${existing?escapeAttr(existing.name):''}">
+    <label>Type (Hierarchy)</label>
+    <select id="conType" onchange="updateParentOptionsForContainerType(this.value)">
+      <option value="location" ${currentType==='location'?'selected':''}>🏠 Location (最大存放地)</option>
       <option value="shelf" ${currentType==='shelf'?'selected':''}>📚 Shelf (料架)</option>
-      <option value="box" ${currentType==='box'?'selected':''}>📦 Box (箱)</option>
+      <option value="box" ${currentType==='box'?'selected':''}>📦 Box (箱子)</option>
+      <option value="drawer" ${currentType==='drawer'?'selected':''}>🗄️ Drawer (抽屜)</option>
+      <option value="cabinet" ${currentType==='cabinet'?'selected':''}>🚪 Cabinet (櫃子)</option>
     </select>
     <div id="parentContainerWrapper" style="${currentType==='location'?'display:none;':''}">
-      <label>Parent Container</label>
-      <select id="locParent">
-        <option value="">None</option>
-        ${parentOptions}
-      </select>
+      <label>Parent Container (依存上層)</label>
+      <select id="conParent"></select>
     </div>
     <label>Notes (Optional)</label>
-    <textarea id="locNote" placeholder="Additional info...">${existing?escapeHtml(existing.note||''):''}</textarea>
-    <button class="btn-primary" id="saveLocBtn">${existing?'Save Changes':'Create'}</button>
-    ${existing?'<button class="btn-danger" id="delLocBtn">Delete Container</button>':''}
+    <textarea id="conNote" placeholder="Additional info...">${existing?escapeHtml(existing.note||''):''}</textarea>
+    <button class="btn-primary" id="saveConBtn">${existing?'Save Changes':'Create'}</button>
+    ${existing?'<button class="btn-danger" id="delConBtn">Delete Container</button>':''}
   `);
 
-  window.updateParentOptionsForType = (typeVal) => {
+  window.updateParentOptionsForContainerType = (typeVal) => {
     const wrapper = document.getElementById('parentContainerWrapper');
-    const parentSel = document.getElementById('locParent');
+    const parentSel = document.getElementById('conParent');
+    
     if(typeVal === 'location'){
       wrapper.style.display = 'none';
       parentSel.innerHTML = '<option value="">None</option>';
     } else {
       wrapper.style.display = 'block';
-      const validParents = state.locations
-        .filter(l=> !existing || l.id!==existing.id)
-        .filter(l=>{
-          if(typeVal === 'shelf') return l.type === 'location';
-          if(typeVal === 'box') return l.type === 'location' || l.type === 'shelf';
-          return false;
-        });
-      parentSel.innerHTML = '<option value="">None</option>' + validParents.map(l=>`<option value="${l.id}" ${existing&&existing.parentId===l.id?'selected':''}>${escapeHtml(locationPath(l.id))}</option>`).join('');
+      let validParents = [];
+      if(typeVal === 'shelf'){
+        // Shelf can only be inside Location
+        validParents = state.locations.filter(l => (!existing || l.id !== existing.id) && l.type === 'location');
+      } else {
+        // Storage (box, drawer, cabinet) can be inside Location or Shelf
+        validParents = state.locations.filter(l => (!existing || l.id !== existing.id) && (l.type === 'location' || l.type === 'shelf'));
+      }
+      parentSel.innerHTML = '<option value="">Select parent...</option>' + validParents.map(l=>`<option value="${l.id}" ${existing&&existing.parentId===l.id?'selected':''}>${CONTAINER_TYPES[l.type].icon} ${escapeHtml(containerPath(l.id))}</option>`).join('');
     }
   };
 
-  document.getElementById('saveLocBtn').addEventListener('click', ()=> saveLocationFromForm(existing));
-  if(existing) document.getElementById('delLocBtn').addEventListener('click', ()=> deleteLocationFlow(existing.id));
+  updateParentOptionsForContainerType(currentType);
+
+  document.getElementById('saveConBtn').addEventListener('click', ()=> saveContainerFromForm(existing));
+  if(existing) document.getElementById('delConBtn').addEventListener('click', ()=> deleteContainerFlow(existing.id));
 }
 
-async function saveLocationFromForm(existing){
-  const name = document.getElementById('locName').value.trim();
+async function saveContainerFromForm(existing){
+  const name = document.getElementById('conName').value.trim();
   if(!name){ toast('Please enter a name'); return; }
-  const type = document.getElementById('locType').value;
-  const parentId = type === 'location' ? null : (document.getElementById('locParent').value || null);
-  const note = document.getElementById('locNote').value.trim();
+  const type = document.getElementById('conType').value;
+  const parentId = type === 'location' ? null : (document.getElementById('conParent').value || null);
+  
+  if(type !== 'location' && !parentId){
+    toast('Dependency error: Shelf must be in a Location, and Storage units must be in a Location or Shelf.');
+    return;
+  }
+
+  const note = document.getElementById('conNote').value.trim();
   if(existing){
-    Object.assign(existing, {name,type,parentId,note});
+    Object.assign(existing, {name, type, parentId, note});
   } else {
     state.locations.push({ id:uid('loc'), name, type, parentId, note, createdAt:Date.now() });
   }
@@ -905,7 +890,7 @@ async function saveLocationFromForm(existing){
   toast('Container saved');
 }
 
-async function deleteLocationFlow(id){
+async function deleteContainerFlow(id){
   if(state.itemsIndex.some(i=>i.locationId===id) || state.locations.some(l=>l.parentId===id)){
     toast('Container is not empty, please clear items or child containers first'); return;
   }
@@ -918,55 +903,65 @@ async function deleteLocationFlow(id){
 }
 
 async function openLocationDetailDesktop(id){
-  const loc = locationById(id);
+  const loc = containerById(id);
   if(!loc) return;
   const items = state.itemsIndex.filter(i=>i.locationId===id);
+  const children = state.locations.filter(l=>l.parentId===id);
   const pane = document.getElementById('desktopDetailPane');
   pane.innerHTML = `
-    <div class="sheet-header"><h2>${LOC_TYPES[loc.type].icon} ${escapeHtml(loc.name)}</h2></div>
-    ${loc.parentId?`<div class="loc-path" style="margin-bottom:10px;">Contained in ${escapeHtml(locationPath(loc.parentId))}</div>`:''}
+    <div class="sheet-header"><h2>${CONTAINER_TYPES[loc.type].icon} ${escapeHtml(loc.name)}</h2></div>
+    ${loc.parentId?`<div class="loc-path" style="margin-bottom:10px;">In ${escapeHtml(containerPath(loc.parentId))}</div>`:''}
     ${loc.note?`<p class="note-block" style="margin-top:0;">${escapeHtml(loc.note)}</p>`:''}
+    ${children.length ? `<label style="margin-top:10px;">Sub-containers (${children.length})</label>
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
+        ${children.map(c=>`<span class="tag-chip">${CONTAINER_TYPES[c.type].icon} ${escapeHtml(c.name)}</span>`).join('')}
+      </div>`:''}
     <label style="margin-top:14px;">Contained Items (${items.length})</label>
     ${items.length? items.map(it=>`
       <div class="item-card" data-id="${it.id}" style="margin-bottom:8px;">
-        ${it.thumb?`<img class="item-thumb" src="${it.thumb}">`:`<div class="item-thumb">${LOC_TYPES[loc.type].icon}</div>`}
+        ${it.thumb?`<img class="item-thumb" src="${it.thumb}">`:`<div class="item-thumb">${CONTAINER_TYPES[loc.type].icon}</div>`}
         <div class="item-info"><p class="name">${escapeHtml(it.name)}</p><span class="qty-badge">×${it.qty??1}</span></div>
       </div>`).join('') : `<p class="hint">This container is currently empty</p>`}
     <button class="btn-secondary" id="editLocDesktopBtn" style="margin-top:14px;">Edit Container</button>
   `;
-  document.getElementById('editLocDesktopBtn').addEventListener('click', ()=> openLocationForm(loc));
+  document.getElementById('editLocDesktopBtn').addEventListener('click', ()=> openContainerForm(loc));
   pane.querySelectorAll('.item-card').forEach(c=> c.addEventListener('click', ()=> openItemDetailDesktop(c.dataset.id)));
 }
 
 function openLocationDetail(id){
-  const loc = locationById(id);
+  const loc = containerById(id);
   if(!loc) return;
   const items = state.itemsIndex.filter(i=>i.locationId===id);
+  const children = state.locations.filter(l=>l.parentId===id);
   openOverlay(`
-    <div class="sheet-header"><h2>${LOC_TYPES[loc.type].icon} ${escapeHtml(loc.name)}</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
-    ${loc.parentId?`<div class="loc-path" style="margin-bottom:10px;">Contained in ${escapeHtml(locationPath(loc.parentId))}</div>`:''}
+    <div class="sheet-header"><h2>${CONTAINER_TYPES[loc.type].icon} ${escapeHtml(loc.name)}</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
+    ${loc.parentId?`<div class="loc-path" style="margin-bottom:10px;">In ${escapeHtml(containerPath(loc.parentId))}</div>`:''}
     ${loc.note?`<p class="note-block" style="margin-top:0;">${escapeHtml(loc.note)}</p>`:''}
+    ${children.length ? `<label style="margin-top:10px;">Sub-containers (${children.length})</label>
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
+        ${children.map(c=>`<span class="tag-chip">${CONTAINER_TYPES[c.type].icon} ${escapeHtml(c.name)}</span>`).join('')}
+      </div>`:''}
     <label style="margin-top:6px;">Contained Items (${items.length})</label>
     ${items.length? items.map(it=>`
       <div class="item-card" data-id="${it.id}" style="margin-bottom:8px;">
-        ${it.thumb?`<img class="item-thumb" src="${it.thumb}">`:`<div class="item-thumb">${LOC_TYPES[loc.type].icon}</div>`}
+        ${it.thumb?`<img class="item-thumb" src="${it.thumb}">`:`<div class="item-thumb">${CONTAINER_TYPES[loc.type].icon}</div>`}
         <div class="item-info"><p class="name">${escapeHtml(it.name)}</p><span class="qty-badge">×${it.qty??1}</span></div>
       </div>`).join('') : `<p class="hint">This container is currently empty</p>`}
     <button class="btn-primary" id="editLocBtn">Edit Container</button>
   `);
-  document.getElementById('editLocBtn').addEventListener('click', ()=> openLocationForm(loc));
+  document.getElementById('editLocBtn').addEventListener('click', ()=> openContainerForm(loc));
   document.querySelectorAll('#overlayRoot .item-card').forEach(c=> c.addEventListener('click', ()=> openItemDetail(c.dataset.id)));
 }
 
 function openItemForm(existingIndexEntry){
   if(state.locations.length===0){
-    toast('Please create at least one Location, Box, or Shelf first');
-    openLocationForm(null);
+    toast('Please create at least one Location first');
+    openContainerForm(null);
     return;
   }
   state.photosDraft = [];
   state.matchedExistingItem = null;
-  const locOptions = state.locations.map(l=>`<option value="${l.id}">${LOC_TYPES[l.type].icon} ${escapeHtml(locationPath(l.id))}</option>`).join('');
+  const locOptions = state.locations.map(l=>`<option value="${l.id}">${CONTAINER_TYPES[l.type].icon} ${escapeHtml(containerPath(l.id))}</option>`).join('');
 
   openOverlay(`
     <div class="sheet-header"><h2>${existingIndexEntry?'Edit Item':'New Item'}</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
@@ -993,7 +988,7 @@ function openItemForm(existingIndexEntry){
         <datalist id="catList"><option value="Tools"><option value="Electronics"><option value="Stationery"><option value="Apparel"><option value="Kitchen"><option value="Misc"></datalist>
       </div>
     </div>
-    <label>Stored In (Location / Box / Shelf)</label>
+    <label>Placement (Location, Shelf, or Storage Unit)</label>
     <select id="itLocation">${locOptions}</select>
     <label>Tags (Optional, comma separated)</label>
     <input type="text" id="itTags" placeholder="e.g. frequent, camping">
@@ -1012,7 +1007,7 @@ function openItemForm(existingIndexEntry){
     getItem(existingIndexEntry.id).then(full=>{
       if(!full) return;
       document.getElementById('itName').value = full.name||'';
-      document.getElementById('itQty').value = 1; // Default add increment
+      document.getElementById('itQty').value = 1;
       document.getElementById('itCategory').value = full.category||'';
       document.getElementById('itLocation').value = full.locationId||'';
       document.getElementById('itTags').value = full.tags||'';
@@ -1096,7 +1091,6 @@ async function handlePhotoInput(e){
   try{
     const processed = await compressImage(file, 900, 0.72);
 
-    // Check if an identical item exists in the system database via image hash matching
     let matchedItem = null;
     let fullMatchedRecord = null;
     for(const indexEntry of state.itemsIndex){
@@ -1109,25 +1103,23 @@ async function handlePhotoInput(e){
     }
 
     if(matchedItem && fullMatchedRecord){
-      // Identical item found: Appearance photo is for recognition only, do NOT add to photosDraft storage
       state.matchedExistingItem = fullMatchedRecord;
       document.getElementById('itName').value = fullMatchedRecord.name;
       if(fullMatchedRecord.category) document.getElementById('itCategory').value = fullMatchedRecord.category;
       if(fullMatchedRecord.tags) document.getElementById('itTags').value = fullMatchedRecord.tags;
       if(fullMatchedRecord.note) document.getElementById('itNote').value = fullMatchedRecord.note;
       
-      const suggestedLocName = locationPath(fullMatchedRecord.locationId) || 'Unassigned';
+      const suggestedPlacementName = containerPath(fullMatchedRecord.locationId) || 'Unassigned';
       document.getElementById('itLocation').value = fullMatchedRecord.locationId || '';
 
       suggestionBox.style.display = 'block';
-      suggestionBox.innerHTML = `💡 <b>Smart Guidance:</b> Identical item detected. Recommended container: <b>${escapeHtml(suggestedLocName)}</b> (Quantity will be accumulated). You can change container below if needed.`;
+      suggestionBox.innerHTML = `💡 <b>Smart Guidance:</b> Identical item detected. Recommended placement: <b>${escapeHtml(suggestedPlacementName)}</b> (Quantity will be accumulated). You can change placement below if needed.`;
       
       aiStatus.textContent = `🎯 Recognized identical item: ${fullMatchedRecord.name}`;
       toast('Identical item matched for quantity increment');
       return;
     }
 
-    // If not an identical item, check if it's a Spec Sheet via OCR
     aiStatus.textContent = '🔍 Running OCR spec sheet analysis...';
     const worker = await Tesseract.createWorker('eng+chi_tra');
     const ret = await worker.recognize(processed.full);
@@ -1135,7 +1127,6 @@ async function handlePhotoInput(e){
 
     const recognizedText = ret.data.text.trim();
     if(recognizedText.length > 8){
-      // Spec sheet detected: Save this photo into photosDraft and record OCR info
       state.photosDraft.push(processed);
       renderPhotoManager();
 
@@ -1145,7 +1136,6 @@ async function handlePhotoInput(e){
       aiStatus.textContent = `✨ Spec sheet detected! Photo saved and OCR text recorded.`;
       toast('Spec sheet photo saved & OCR extracted');
     } else {
-      // Regular new item photo: Save to photosDraft
       state.photosDraft.push(processed);
       renderPhotoManager();
       aiStatus.textContent = `✨ New item photo added successfully!`;
@@ -1170,7 +1160,6 @@ async function saveItemFromForm(existingIndexEntry){
   let targetItem = existingIndexEntry ? await getItem(existingIndexEntry.id) : state.matchedExistingItem;
 
   if(targetItem){
-    // Accumulate quantity if storing in the same location, or update record
     targetItem.qty = (parseFloat(targetItem.qty) || 1) + addQty;
     targetItem.category = category || targetItem.category;
     targetItem.locationId = locationId || targetItem.locationId;
@@ -1178,7 +1167,6 @@ async function saveItemFromForm(existingIndexEntry){
     targetItem.note = note || targetItem.note;
     targetItem.updatedAt = now;
 
-    // Append new spec photos if any added during this session
     if(state.photosDraft.length > 0){
       if(!targetItem.photos) targetItem.photos = [];
       targetItem.photos = targetItem.photos.concat(state.photosDraft);
@@ -1197,7 +1185,6 @@ async function saveItemFromForm(existingIndexEntry){
     return;
   }
 
-  // Brand new item creation
   let id = uid('item');
   let createdAt = now;
   const photos = state.photosDraft;
@@ -1233,8 +1220,8 @@ async function openItemDetailDesktop(id){
   if(!indexEntry) return;
   const full = await getItem(id);
   if(!full) return;
-  const t = locationTypeOf(full.locationId);
-  const tinfo = LOC_TYPES[t]||LOC_TYPES.location;
+  const t = containerTypeOf(full.locationId);
+  const tinfo = CONTAINER_TYPES[t]||CONTAINER_TYPES.location;
   const photoList = (full.photos && full.photos.length > 0) 
     ? full.photos.map(p=>`<img class="detail-photo" src="${p.full}">`).join('')
     : (full.photo ? `<img class="detail-photo" src="${full.photo}">` : `<div class="detail-photo">${tinfo.icon}</div>`);
@@ -1246,7 +1233,7 @@ async function openItemDetailDesktop(id){
     <p class="detail-title">${escapeHtml(full.name)}</p>
     <div class="detail-row"><span class="k">Quantity</span><span class="v">${full.qty ?? 1}</span></div>
     ${full.category?`<div class="detail-row"><span class="k">Category</span><span class="v">${escapeHtml(full.category)}</span></div>`:''}
-    <div class="detail-row"><span class="k">Stored In</span><span class="v"><span class="tag-badge ${tinfo.cls}">${escapeHtml(locationPath(full.locationId)||'Unassigned')}</span></span></div>
+    <div class="detail-row"><span class="k">Placement</span><span class="v"><span class="tag-badge ${tinfo.cls}">${escapeHtml(containerPath(full.locationId)||'Unassigned')}</span></span></div>
     <div class="detail-row"><span class="k">Updated</span><span class="v">${new Date(full.updatedAt).toLocaleString('zh-TW')}</span></div>
     ${full.tags ? `<div style="margin-top:10px;">${full.tags.split(',').map(t=>t.trim()).filter(Boolean).map(t=>`<span class="tag-chip">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
     ${full.note ? `<div class="note-block">${escapeHtml(full.note)}</div>` : ''}
@@ -1261,8 +1248,8 @@ async function openItemDetail(id){
   openOverlay(`<div class="sheet-header"><h2>Item Details</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div><p class="hint"><span class="loading-dot"></span>Loading...</p>`);
   const full = await getItem(id);
   if(!full){ toast('Failed to load'); closeOverlay(); return; }
-  const t = locationTypeOf(full.locationId);
-  const tinfo = LOC_TYPES[t]||LOC_TYPES.location;
+  const t = containerTypeOf(full.locationId);
+  const tinfo = CONTAINER_TYPES[t]||CONTAINER_TYPES.location;
 
   const photoList = (full.photos && full.photos.length > 0) 
     ? full.photos.map(p=>`<img class="detail-photo" src="${p.full}">`).join('')
@@ -1274,7 +1261,7 @@ async function openItemDetail(id){
     <p class="detail-title">${escapeHtml(full.name)}</p>
     <div class="detail-row"><span class="k">Quantity</span><span class="v">${full.qty ?? 1}</span></div>
     ${full.category?`<div class="detail-row"><span class="k">Category</span><span class="v">${escapeHtml(full.category)}</span></div>`:''}
-    <div class="detail-row"><span class="k">Stored In</span><span class="v"><span class="tag-badge ${tinfo.cls}">${escapeHtml(locationPath(full.locationId)||'Unassigned')}</span></span></div>
+    <div class="detail-row"><span class="k">Placement</span><span class="v"><span class="tag-badge ${tinfo.cls}">${escapeHtml(containerPath(full.locationId)||'Unassigned')}</span></span></div>
     <div class="detail-row"><span class="k">Updated</span><span class="v">${new Date(full.updatedAt).toLocaleString('zh-TW')}</span></div>
     ${full.tags ? `<div style="margin-top:10px;">${full.tags.split(',').map(t=>t.trim()).filter(Boolean).map(t=>`<span class="tag-chip">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
     ${full.note ? `<div class="note-block">${escapeHtml(full.note)}</div>` : ''}
