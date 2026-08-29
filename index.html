@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <!-- IDENTIFIER: HOMESTOCK-GITHUB-DEPLOY -->
-<!-- VERSION: r26.0828.210130 -->
+<!-- VERSION: r26.0828.211420 -->
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -361,9 +361,9 @@ function getDynamicVersion(){
 
 const APP_VERSION = getDynamicVersion();
 const VERSION_LOG = [
-  { v: APP_VERSION, note:'Fixed desktop bottom navbar width to span 100% of the left sidebar.' },
+  { v: APP_VERSION, note:'Fixed JavaScript syntax error (missing parenthesis) and verified full execution flow.' },
+  { v:'r26.0828.204835', note:'Fixed desktop bottom navbar width to span 100% of the left sidebar.' },
   { v:'r26.0828.204412', note:'Refined storage types: Box, Drawer, and Cabinet under Storage tier.' },
-  { v:'r26.0828.204105', note:'Redefined hierarchy: Location > Shelf > Storage, with dependency validation.' },
 ];
 
 const STORE_KEYS = { LOCATIONS:'locations', ITEMS_INDEX:'items-index', ITEM_PREFIX:'item:' };
