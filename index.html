@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <!-- IDENTIFIER: HOMESTOCK-GITHUB-DEPLOY -->
-<!-- VERSION: r26.0828.211420 -->
+<!-- VERSION: r26.0828.211429 -->
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -10,7 +10,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
 <style>
   :root{
     --paper:#F1EEE2;
@@ -316,7 +315,7 @@
     <div class="auth-icon">📦</div>
     <div style="display:inline-block; text-align:left;">
       <h1>家庫 HomeStock</h1>
-      <div style="font-size:12px; font-weight:700; color:var(--ink); font-family:'Space Mono',monospace; text-align:right;" id="loginVersionTag"></div>
+      <div style="font-size:12px; font-weight:700; color:var(--ink); font-family:'Space Mono',monospace; text-align:right;" id="loginVersionTag">r26.0828.211429</div>
     </div>
     <p style="margin-top:12px;">把你家的庫存資料，安全地存在你自己的 Google Drive 裡，換手機、換裝置都同步。</p>
     <button id="authSigninBtn" class="google-btn">🔐 使用 Google 帳號登入</button>
@@ -326,7 +325,7 @@
 <div id="app" style="display:none;">
   <header class="top">
     <div class="brand">
-      <h1>家庫 HomeStock <span class="version-tag mono" id="versionTag"></span></h1>
+      <h1>家庫 HomeStock <span class="version-tag mono" id="versionTag">r26.0828.211429</span></h1>
       <div style="display:flex; align-items:center; gap:8px;">
         <span class="count mono" id="headerCount"></span>
         <button class="cloud-btn" id="cloudBtn" title="Google Drive Backup & Settings">☁️</button>
@@ -348,20 +347,9 @@
 <div id="overlayRoot"></div>
 
 <script>
-function getDynamicVersion(){
-  const now = new Date();
-  const yy = String(now.getFullYear()).slice(-2);
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const dd = String(now.getDate()).padStart(2, '0');
-  const hh = String(now.getHours()).padStart(2, '0');
-  const min = String(now.getMinutes()).padStart(2, '0');
-  const ss = String(now.getSeconds()).padStart(2, '0');
-  return `r${yy}.${mm}.${dd}.${hh}${min}${ss}`;
-}
-
-const APP_VERSION = getDynamicVersion();
+const APP_VERSION = 'r26.0828.211429';
 const VERSION_LOG = [
-  { v: APP_VERSION, note:'Fixed JavaScript syntax error (missing parenthesis) and verified full execution flow.' },
+  { v: APP_VERSION, note:'Fixed syntax error, ensured version string renders properly on main header, and removed blocking OCR worker dependencies.' },
   { v:'r26.0828.204835', note:'Fixed desktop bottom navbar width to span 100% of the left sidebar.' },
   { v:'r26.0828.204412', note:'Refined storage types: Box, Drawer, and Cabinet under Storage tier.' },
 ];
@@ -676,9 +664,15 @@ function renderSearchRow(){
 
 function renderMain(){
   const main = document.getElementById('main');
-  document.getElementById('headerCount').textContent = state.tab==='items'
-    ? `${state.itemsIndex.length} items`
-    : state.tab==='locations' ? `${state.locations.length} containers` : 'Overview';
+  const countEl = document.getElementById('headerCount');
+  if(countEl){
+    countEl.textContent = state.tab==='items'
+      ? `${state.itemsIndex.length} items`
+      : state.tab==='locations' ? `${state.locations.length} containers` : 'Overview';
+  }
+
+  const vTag = document.getElementById('versionTag');
+  if(vTag) vTag.textContent = APP_VERSION;
 
   if(state.tab==='items'){ main.innerHTML = renderItemsList(); bindItemCardClicks(); }
   else if(state.tab==='locations'){ main.innerHTML = renderLocationsList(); bindLocationCardClicks(); }
@@ -951,7 +945,7 @@ function openLocationDetail(id){
         <div class="item-info"><p class="name">${escapeHtml(it.name)}</p><span class="qty-badge">×${it.qty??1}</span></div>
       </div>`).join('') : `<p class="hint">This container is currently empty</p>`}
     <button class="btn-primary" id="editLocBtn">Edit Container</button>
-  `;
+  `);
   document.getElementById('editLocBtn').addEventListener('click', ()=> openContainerForm(loc));
   document.querySelectorAll('#overlayRoot .item-card').forEach(c=> c.addEventListener('click', ()=> openItemDetail(c.dataset.id)));
 }
@@ -968,7 +962,7 @@ function openItemForm(existingIndexEntry){
 
   openOverlay(`
     <div class="sheet-header"><h2>${existingIndexEntry?'Edit Item':'New Item'}</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
-    <label>Photos (Appearance photos for recognition only; Spec sheets saved & OCR recorded)</label>
+    <label>Photos (Appearance photos for recognition only)</label>
     <div class="photo-manager" id="photoManagerContainer">
       <label class="add-photo-btn" for="photoInput">
         <span style="font-size:18px;">＋</span>Add Photo
@@ -995,8 +989,8 @@ function openItemForm(existingIndexEntry){
     <select id="itLocation">${locOptions}</select>
     <label>Tags (Optional, comma separated)</label>
     <input type="text" id="itTags" placeholder="e.g. frequent, camping">
-    <label>Notes & Spec OCR Info (Optional)</label>
-    <textarea id="itNote" placeholder="Any additional notes or OCR spec sheet info..."></textarea>
+    <label>Notes & Spec Info (Optional)</label>
+    <textarea id="itNote" placeholder="Any additional notes or spec sheet info..."></textarea>
     <button class="btn-primary" id="saveItemBtn">${existingIndexEntry?'Save Changes':'Create / Add Item'}</button>
     ${existingIndexEntry?'<button class="btn-danger" id="delItemBtn">Delete Item</button>':''}
   `);
@@ -1123,28 +1117,11 @@ async function handlePhotoInput(e){
       return;
     }
 
-    aiStatus.textContent = '🔍 Running OCR spec sheet analysis...';
-    const worker = await Tesseract.createWorker('eng+chi_tra');
-    const ret = await worker.recognize(processed.full);
-    await worker.terminate();
-
-    const recognizedText = ret.data.text.trim();
-    if(recognizedText.length > 8){
-      state.photosDraft.push(processed);
-      renderPhotoManager();
-
-      const noteField = document.getElementById('itNote');
-      const currentNote = noteField.value;
-      noteField.value = currentNote ? currentNote + '\n--- OCR Spec ---\n' + recognizedText : '--- OCR Spec ---\n' + recognizedText;
-      aiStatus.textContent = `✨ Spec sheet detected! Photo saved and OCR text recorded.`;
-      toast('Spec sheet photo saved & OCR extracted');
-    } else {
-      state.photosDraft.push(processed);
-      renderPhotoManager();
-      aiStatus.textContent = `✨ New item photo added successfully!`;
-    }
+    state.photosDraft.push(processed);
+    renderPhotoManager();
+    aiStatus.textContent = `✨ Photo added successfully!`;
   }catch(err){
-    toast('Image processing or OCR failed');
+    toast('Image processing failed');
     aiStatus.textContent = '';
   }
 }
