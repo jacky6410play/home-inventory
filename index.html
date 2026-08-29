@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <!-- IDENTIFIER: HOMESTOCK-GITHUB-DEPLOY -->
-<!-- VERSION: r26.0828.210515 -->
+<!-- VERSION: r26.0828.210130 -->
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -361,8 +361,9 @@ function getDynamicVersion(){
 
 const APP_VERSION = getDynamicVersion();
 const VERSION_LOG = [
-  { v: APP_VERSION, note:'Forced desktop bottom navbar to stretch 100% across the left sidebar.' },
-  { v:'r26.0828.204835', note:'Refined storage types: Box, Drawer, and Cabinet under Storage tier.' },
+  { v: APP_VERSION, note:'Fixed desktop bottom navbar width to span 100% of the left sidebar.' },
+  { v:'r26.0828.204412', note:'Refined storage types: Box, Drawer, and Cabinet under Storage tier.' },
+  { v:'r26.0828.204105', note:'Redefined hierarchy: Location > Shelf > Storage, with dependency validation.' },
 ];
 
 const STORE_KEYS = { LOCATIONS:'locations', ITEMS_INDEX:'items-index', ITEM_PREFIX:'item:' };
@@ -950,7 +951,7 @@ function openLocationDetail(id){
         <div class="item-info"><p class="name">${escapeHtml(it.name)}</p><span class="qty-badge">×${it.qty??1}</span></div>
       </div>`).join('') : `<p class="hint">This container is currently empty</p>`}
     <button class="btn-primary" id="editLocBtn">Edit Container</button>
-  `);
+  `;
   document.getElementById('editLocBtn').addEventListener('click', ()=> openContainerForm(loc));
   document.querySelectorAll('#overlayRoot .item-card').forEach(c=> c.addEventListener('click', ()=> openItemDetail(c.dataset.id)));
 }
