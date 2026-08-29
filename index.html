@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <!-- IDENTIFIER: HOMESTOCK-GITHUB-DEPLOY -->
-<!-- VERSION: r26.0828.201518 -->
+<!-- VERSION: r26.0828.202245 -->
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
 <style>
   :root{
     --paper:#F1EEE2;
@@ -29,26 +30,36 @@
     --shadow:0 1px 2px rgba(32,36,28,.08), 0 4px 14px rgba(32,36,28,.07);
   }
   *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
+  html,body{margin:0;padding:0; height:100vh;}
   body{
     background:var(--paper);
     color:var(--ink);
     font-family:'Inter',system-ui,-apple-system,sans-serif;
     -webkit-font-smoothing:antialiased;
-    min-height:100vh;
     display:flex;
     justify-content:center;
   }
+  
   #app{
     width:100%;
     max-width:480px;
-    min-height:100vh;
+    height:100vh;
     background:var(--paper);
     position:relative;
     display:flex;
     flex-direction:column;
     padding-bottom:78px;
   }
+
+  @media (min-width: 768px) {
+    #app {
+      max-width: 960px;
+      border-left: 1px solid var(--line);
+      border-right: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+  }
+
   .mono{font-family:'Space Mono',monospace;}
 
   header.top{
@@ -87,7 +98,7 @@
     border-radius:9px; padding:8px 8px; font-size:12px; font-family:'Inter',sans-serif; max-width:110px;
   }
 
-  main{flex:1; padding:14px 16px 8px;}
+  main{flex:1; padding:14px 16px 8px; overflow-y:auto;}
   .empty-state{
     text-align:center; padding:60px 20px; color:var(--ink-soft);
   }
@@ -148,7 +159,7 @@
   .stat-card .label{font-size:12px; color:var(--ink-soft);}
 
   .fab{
-    position:fixed; right:calc(50% - 240px + 18px); bottom:88px; z-index:30;
+    position:fixed; right:calc(50% - 220px + 18px); bottom:88px; z-index:30;
     width:52px; height:52px; border-radius:50%;
     background:var(--accent); color:#fff; border:none;
     font-size:26px; box-shadow:0 4px 14px rgba(46,107,110,.4);
@@ -157,8 +168,7 @@
   @media (max-width:480px){ .fab{ right:18px; } }
 
   nav.bottom{
-    position:fixed; bottom:0; left:50%; transform:translateX(-50%);
-    width:100%; max-width:480px; background:var(--card);
+    position:absolute; bottom:0; left:0; width:100%; background:var(--card);
     border-top:1px solid var(--line); display:flex; z-index:25;
     padding:8px 0 calc(8px + env(safe-area-inset-bottom));
   }
@@ -200,12 +210,22 @@
   textarea{resize:vertical; min-height:60px;}
   .hint{font-size:11px; color:var(--ink-faint); margin-top:5px;}
 
-  .photo-picker{display:flex; align-items:center; gap:12px;}
-  .photo-preview{
-    width:76px; height:76px; border-radius:10px; object-fit:cover; border:1px solid var(--line); background:var(--card);
-    display:flex; align-items:center; justify-content:center; color:var(--ink-faint); font-size:26px;
+  .photo-manager{display:flex; gap:8px; overflow-x:auto; padding-bottom:6px;}
+  .photo-thumb-item{
+    width:72px; height:72px; border-radius:10px; border:1px solid var(--line); background:var(--card);
+    position:relative; flex-shrink:0; overflow:hidden; display:flex; align-items:center; justify-content:center;
   }
-  .photo-btns{display:flex; flex-direction:column; gap:6px;}
+  .photo-thumb-item img{width:100%; height:100%; object-fit:cover;}
+  .photo-thumb-item .del-photo{
+    position:absolute; top:2px; right:2px; background:rgba(0,0,0,0.6); color:#fff; border:none;
+    border-radius:50%; width:20px; height:20px; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+  .add-photo-btn{
+    width:72px; height:72px; border-radius:10px; border:2px dashed var(--line); background:var(--card);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--ink-faint);
+    font-size:12px; cursor:pointer; flex-shrink:0; gap:2px;
+  }
+
   .btn-secondary{
     padding:8px 12px; border-radius:8px; border:1px solid var(--line); background:var(--card);
     font-size:12.5px; color:var(--ink); cursor:pointer; text-align:center;
@@ -221,9 +241,10 @@
   .row2{display:flex; gap:10px;}
   .row2 > div{flex:1;}
 
+  .detail-photo-slider{display:flex; gap:8px; overflow-x:auto; margin-bottom:14px;}
   .detail-photo{
     width:100%; aspect-ratio:1/1; border-radius:14px; object-fit:cover; background:var(--card); border:1px solid var(--line);
-    display:flex; align-items:center; justify-content:center; font-size:40px; color:var(--ink-faint); margin-bottom:14px;
+    display:flex; align-items:center; justify-content:center; font-size:40px; color:var(--ink-faint); flex-shrink:0;
   }
   .detail-title{font-size:19px; font-weight:700; margin:0 0 8px;}
   .detail-row{display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--line); font-size:13px;}
@@ -305,10 +326,10 @@ function getDynamicVersion(){
 
 const APP_VERSION = getDynamicVersion();
 const VERSION_LOG = [
-  { v: APP_VERSION, note:'Optimized Google OAuth prompt behavior to prevent repetitive consent popups after initial login.' },
+  { v: APP_VERSION, note:'Added multi-photo support and client-side OCR parsing for spec sheet images.' },
+  { v:'r26.0828.202345', note:'Added responsive design for automatic mobile and desktop layout switching.' },
   { v:'r26.0828.195035', note:'Enforced real-time seconds in dynamic versioning and updated container hierarchy logic.' },
   { v:'r26.0828.172412', note:'Removed random name suggestions, enabled precise history image matching for identical items' },
-  { v:'r26.0827', note:'Initial release: Location management, item creation, search and filter' },
 ];
 
 const STORE_KEYS = { LOCATIONS:'locations', ITEMS_INDEX:'items-index', ITEM_PREFIX:'item:' };
@@ -346,7 +367,6 @@ function requestAccessToken(interactive){
       driveState.accessToken = resp.access_token;
       resolve(resp.access_token);
     };
-    // Use select_account or empty prompt for non-interactive background token refresh
     driveState.tokenClient.requestAccessToken({ prompt: interactive ? 'select_account' : '' });
   });
 }
@@ -449,7 +469,7 @@ let state = {
   itemsIndex:[],
   query:'',
   locationFilter:'',
-  photoDraft:null,
+  photosDraft:[], // Array of { full, thumb, hash }
 };
 
 const LOC_TYPES = {
@@ -482,7 +502,6 @@ function compressImage(file, maxSize, quality){
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img,0,0,w,h);
         
-        // Generate perceptual hash to match identical item images from history
         const data = ctx.getImageData(0, 0, 32, 32).data;
         let hash = 0;
         for (let i = 0; i < data.length; i += 4) {
@@ -743,7 +762,7 @@ function openOverlay(html){
   root.innerHTML = `<div class="overlay" id="ovBg"><div class="sheet">${html}</div></div>`;
   document.getElementById('ovBg').addEventListener('click', e=>{ if(e.target.id==='ovBg') closeOverlay(); });
 }
-function closeOverlay(){ document.getElementById('overlayRoot').innerHTML=''; state.photoDraft=null; }
+function closeOverlay(){ document.getElementById('overlayRoot').innerHTML=''; state.photosDraft=[]; }
 
 document.getElementById('fabBtn').addEventListener('click', ()=>{
   openOverlay(`
@@ -872,19 +891,17 @@ function openItemForm(existingIndexEntry){
     openLocationForm(null);
     return;
   }
-  state.photoDraft = null;
+  state.photosDraft = [];
   const locOptions = state.locations.map(l=>`<option value="${l.id}">${LOC_TYPES[l.type].icon} ${escapeHtml(locationPath(l.id))}</option>`).join('');
 
   openOverlay(`
     <div class="sheet-header"><h2>${existingIndexEntry?'Edit Item':'New Item'}</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
-    <label>Photo (Auto-matches identical items from history)</label>
-    <div class="photo-picker">
-      <div class="photo-preview" id="photoPreview">🖼️</div>
-      <div class="photo-btns">
-        <label class="btn-secondary" for="photoInput">Take / Choose Photo</label>
-        <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none;">
-        <button class="btn-secondary" id="clearPhotoBtn" type="button">Remove Photo</button>
-      </div>
+    <label>Photos (Multiple photos supported, first photo matches history & OCR spec sheet)</label>
+    <div class="photo-manager" id="photoManagerContainer">
+      <label class="add-photo-btn" for="photoInput">
+        <span style="font-size:18px;">＋</span>Add Photo
+      </label>
+      <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none;">
     </div>
     <div id="aiNameStatus" class="hint" style="color:var(--accent);"></div>
     <label style="display:flex; justify-content:space-between; align-items:center;">
@@ -905,18 +922,13 @@ function openItemForm(existingIndexEntry){
     <select id="itLocation">${locOptions}</select>
     <label>Tags (Optional, comma separated)</label>
     <input type="text" id="itTags" placeholder="e.g. frequent, camping">
-    <label>Notes (Optional)</label>
-    <textarea id="itNote" placeholder="Any additional notes..."></textarea>
+    <label>Notes & Spec OCR Info (Optional)</label>
+    <textarea id="itNote" placeholder="Any additional notes or OCR spec sheet info..."></textarea>
     <button class="btn-primary" id="saveItemBtn">${existingIndexEntry?'Save Changes':'Create Item'}</button>
     ${existingIndexEntry?'<button class="btn-danger" id="delItemBtn">Delete Item</button>':''}
   `);
 
   document.getElementById('photoInput').addEventListener('change', handlePhotoInput);
-  document.getElementById('clearPhotoBtn').addEventListener('click', ()=>{
-    state.photoDraft = 'REMOVE';
-    document.getElementById('photoPreview').innerHTML = '🖼️';
-    document.getElementById('aiNameStatus').textContent = '';
-  });
   document.getElementById('scanBarcodeBtn').addEventListener('click', startBarcodeScanner);
   document.getElementById('saveItemBtn').addEventListener('click', ()=> saveItemFromForm(existingIndexEntry));
 
@@ -930,12 +942,42 @@ function openItemForm(existingIndexEntry){
       document.getElementById('itLocation').value = full.locationId||'';
       document.getElementById('itTags').value = full.tags||'';
       document.getElementById('itNote').value = full.note||'';
-      if(full.photo){
-        document.getElementById('photoPreview').innerHTML = `<img src="${full.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
+      if(full.photos && full.photos.length > 0){
+        state.photosDraft = [...full.photos];
+        renderPhotoManager();
+      } else if(full.photo){
+        // Backward compatibility for single photo
+        state.photosDraft = [{ full: full.photo, thumb: full.thumb||full.photo, hash: full.photoHash||0 }];
+        renderPhotoManager();
       }
     });
   }
 }
+
+function renderPhotoManager(){
+  const container = document.getElementById('photoManagerContainer');
+  const addBtnHTML = `
+    <label class="add-photo-btn" for="photoInput">
+      <span style="font-size:18px;">＋</span>Add Photo
+    </label>
+    <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none;">
+  `;
+  
+  let thumbsHTML = state.photosDraft.map((p, idx)=>`
+    <div class="photo-thumb-item">
+      <img src="${p.thumb}">
+      <button type="button" class="del-photo" onclick="removePhotoDraft(${idx})">✕</button>
+    </div>
+  `).join('');
+
+  container.innerHTML = thumbsHTML + addBtnHTML;
+  document.getElementById('photoInput').addEventListener('change', handlePhotoInput);
+}
+
+window.removePhotoDraft = (idx) => {
+  state.photosDraft.splice(idx, 1);
+  renderPhotoManager();
+};
 
 let html5QrCode = null;
 function startBarcodeScanner(){
@@ -973,40 +1015,55 @@ function stopBarcodeScanner(){
 async function handlePhotoInput(e){
   const file = e.target.files[0];
   if(!file) return;
-  const preview = document.getElementById('photoPreview');
   const aiStatus = document.getElementById('aiNameStatus');
-  preview.innerHTML = `<span class="loading-dot"></span>`;
-  aiStatus.textContent = '🔄 Matching photo with history database...';
+  aiStatus.innerHTML = '<span class="loading-dot"></span>Processing photo, matching history & running OCR...';
 
   try{
     const processed = await compressImage(file, 900, 0.72);
-    state.photoDraft = processed;
-    preview.innerHTML = `<img src="${processed.thumb}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
+    state.photosDraft.push(processed);
+    renderPhotoManager();
 
-    // Check if an identical item exists in the system database via image hash matching
-    let matchedItem = null;
-    for(const indexEntry of state.itemsIndex){
-      const fullRec = await getItem(indexEntry.id);
-      if(fullRec && fullRec.photoHash && Math.abs(fullRec.photoHash - processed.hash) < 15000){
-        matchedItem = fullRec;
-        break;
+    // If it's the first photo, check for identical item history matching
+    if(state.photosDraft.length === 1){
+      let matchedItem = null;
+      for(const indexEntry of state.itemsIndex){
+        const fullRec = await getItem(indexEntry.id);
+        if(fullRec && fullRec.photoHash && Math.abs(fullRec.photoHash - processed.hash) < 15000){
+          matchedItem = fullRec;
+          break;
+        }
+      }
+
+      if(matchedItem){
+        document.getElementById('itName').value = matchedItem.name;
+        if(matchedItem.category) document.getElementById('itCategory').value = matchedItem.category;
+        if(matchedItem.locationId) document.getElementById('itLocation').value = matchedItem.locationId;
+        if(matchedItem.tags) document.getElementById('itTags').value = matchedItem.tags;
+        if(matchedItem.note) document.getElementById('itNote').value = matchedItem.note;
+        aiStatus.textContent = `🎯 Identical item detected! Auto-applied: ${matchedItem.name}`;
+        toast('Applied existing name from matching history photo');
+        return;
       }
     }
 
-    if(matchedItem){
-      document.getElementById('itName').value = matchedItem.name;
-      if(matchedItem.category) document.getElementById('itCategory').value = matchedItem.category;
-      if(matchedItem.locationId) document.getElementById('itLocation').value = matchedItem.locationId;
-      if(matchedItem.tags) document.getElementById('itTags').value = matchedItem.tags;
-      if(matchedItem.note) document.getElementById('itNote').value = matchedItem.note;
-      aiStatus.textContent = `🎯 Identical item detected! Auto-applied: ${matchedItem.name}`;
-      toast('Applied existing name from matching history photo');
+    // Run OCR to check if it's a spec sheet
+    aiStatus.textContent = '🔍 Running OCR spec sheet text extraction...';
+    const worker = await Tesseract.createWorker('eng+chi_tra');
+    const ret = await worker.recognize(processed.full);
+    await worker.terminate();
+
+    const recognizedText = ret.data.text.trim();
+    if(recognizedText.length > 5){
+      const noteField = document.getElementById('itNote');
+      const currentNote = noteField.value;
+      noteField.value = currentNote ? currentNote + '\n--- OCR Spec ---\n' + recognizedText : '--- OCR Spec ---\n' + recognizedText;
+      aiStatus.textContent = `✨ Spec sheet OCR parsed successfully and added to notes!`;
+      toast('OCR spec sheet text extracted');
     } else {
-      aiStatus.textContent = `✨ New item photo loaded. Enter name manually for future matching!`;
+      aiStatus.textContent = `✨ Photo added successfully!`;
     }
   }catch(err){
-    toast('Image processing failed');
-    preview.innerHTML = '🖼️';
+    toast('Image processing or OCR failed');
     aiStatus.textContent = '';
   }
 }
@@ -1022,23 +1079,22 @@ async function saveItemFromForm(existingIndexEntry){
   const note = document.getElementById('itNote').value.trim();
   const now = Date.now();
 
-  let id, createdAt, photo, thumb, photoHash;
+  let id, createdAt;
   if(existingIndexEntry){
     id = existingIndexEntry.id;
     const prevFull = await getItem(id) || {};
     createdAt = prevFull.createdAt || now;
-    photo = prevFull.photo; thumb = existingIndexEntry.thumb; photoHash = prevFull.photoHash;
   } else {
     id = uid('item'); createdAt = now;
   }
-  if(state.photoDraft === 'REMOVE'){ photo=undefined; thumb=undefined; photoHash=undefined; }
-  else if(state.photoDraft && state.photoDraft.full){ 
-    photo=state.photoDraft.full; 
-    thumb=state.photoDraft.thumb; 
-    photoHash=state.photoDraft.hash; 
-  }
 
-  const fullRecord = { id, name, qty, category, locationId, tags, note, photo, photoHash, createdAt, updatedAt: now };
+  const photos = state.photosDraft;
+  const firstPhoto = photos.length > 0 ? photos[0] : null;
+  const photo = firstPhoto ? firstPhoto.full : undefined;
+  const thumb = firstPhoto ? firstPhoto.thumb : undefined;
+  const photoHash = firstPhoto ? firstPhoto.hash : undefined;
+
+  const fullRecord = { id, name, qty, category, locationId, tags, note, photos, photo, photoHash, createdAt, updatedAt: now };
   await saveItemRecord(fullRecord);
 
   const indexEntry = { id, name, qty, category, locationId, tags, thumb, updatedAt: now };
@@ -1069,9 +1125,14 @@ async function openItemDetail(id){
   if(!full){ toast('Failed to load'); closeOverlay(); return; }
   const t = locationTypeOf(full.locationId);
   const tinfo = LOC_TYPES[t]||LOC_TYPES.location;
+
+  const photoList = (full.photos && full.photos.length > 0) 
+    ? full.photos.map(p=>`<img class="detail-photo" src="${p.full}">`).join('')
+    : (full.photo ? `<img class="detail-photo" src="${full.photo}">` : `<div class="detail-photo">${tinfo.icon}</div>`);
+
   document.querySelector('#overlayRoot .sheet').innerHTML = `
     <div class="sheet-header"><h2>Item Details</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
-    ${full.photo ? `<img class="detail-photo" src="${full.photo}">` : `<div class="detail-photo">${tinfo.icon}</div>`}
+    <div class="detail-photo-slider">${photoList}</div>
     <p class="detail-title">${escapeHtml(full.name)}</p>
     <div class="detail-row"><span class="k">Quantity</span><span class="v">${full.qty ?? 1}</span></div>
     ${full.category?`<div class="detail-row"><span class="k">Category</span><span class="v">${escapeHtml(full.category)}</span></div>`:''}
