@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <!-- IDENTIFIER: HOMESTOCK-GITHUB-DEPLOY -->
-<!-- VERSION: r26.0828.204412 -->
+<!-- VERSION: r26.0828.204835 -->
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -58,7 +58,7 @@
       box-shadow: var(--shadow);
       display: grid;
       grid-template-columns: 380px 1fr;
-      grid-template-rows: auto 1fr;
+      grid-template-rows: auto 1fr auto;
       padding-bottom: 0;
     }
     header.top {
@@ -66,19 +66,22 @@
     }
     nav.bottom {
       grid-column: 1 / 2;
+      grid-row: 3 / 4;
       position: relative !important;
       bottom: auto !important;
       left: auto !important;
-      border-top: none;
+      width: 100% !important;
+      border-top: 1px solid var(--line);
       border-right: 1px solid var(--line);
     }
     main {
       grid-column: 1 / 2;
+      grid-row: 2 / 3;
       overflow-y: auto;
     }
     #desktopDetailPane {
       grid-column: 2 / 3;
-      grid-row: 2 / 3;
+      grid-row: 2 / 4;
       background: var(--card);
       border-left: 1px solid var(--line);
       padding: 24px;
@@ -357,7 +360,8 @@ function getDynamicVersion(){
 
 const APP_VERSION = getDynamicVersion();
 const VERSION_LOG = [
-  { v: APP_VERSION, note:'Refined storage types: Box, Drawer, and Cabinet under Storage tier.' },
+  { v: APP_VERSION, note:'Fixed desktop bottom navbar width to stretch fully across the left sidebar.' },
+  { v:'r26.0828.204412', note:'Refined storage types: Box, Drawer, and Cabinet under Storage tier.' },
   { v:'r26.0828.204105', note:'Redefined hierarchy: Location > Shelf > Storage, with dependency validation.' },
 ];
 
@@ -850,10 +854,8 @@ function openContainerForm(existing){
       wrapper.style.display = 'block';
       let validParents = [];
       if(typeVal === 'shelf'){
-        // Shelf can only be inside Location
         validParents = state.locations.filter(l => (!existing || l.id !== existing.id) && l.type === 'location');
       } else {
-        // Storage (box, drawer, cabinet) can be inside Location or Shelf
         validParents = state.locations.filter(l => (!existing || l.id !== existing.id) && (l.type === 'location' || l.type === 'shelf'));
       }
       parentSel.innerHTML = '<option value="">Select parent...</option>' + validParents.map(l=>`<option value="${l.id}" ${existing&&existing.parentId===l.id?'selected':''}>${CONTAINER_TYPES[l.type].icon} ${escapeHtml(containerPath(l.id))}</option>`).join('');
