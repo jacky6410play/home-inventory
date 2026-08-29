@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <!-- IDENTIFIER: HOMESTOCK-GITHUB-DEPLOY -->
-<!-- VERSION: r26.0828.202245 -->
+<!-- VERSION: r26.0828.203111 -->
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -53,11 +53,43 @@
 
   @media (min-width: 768px) {
     #app {
-      max-width: 960px;
+      max-width: 1200px;
       border-left: 1px solid var(--line);
       border-right: 1px solid var(--line);
       box-shadow: var(--shadow);
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      grid-template-rows: auto 1fr;
+      padding-bottom: 0;
     }
+    header.top {
+      grid-column: 1 / 3;
+    }
+    nav.bottom {
+      grid-column: 1 / 2;
+      position: relative !important;
+      bottom: auto !important;
+      left: auto !important;
+      border-top: none;
+      border-right: 1px solid var(--line);
+    }
+    main {
+      grid-column: 1 / 2;
+      overflow-y: auto;
+    }
+    #desktopDetailPane {
+      grid-column: 2 / 3;
+      grid-row: 2 / 3;
+      background: var(--card);
+      border-left: 1px solid var(--line);
+      padding: 24px;
+      overflow-y: auto;
+      display: block;
+    }
+  }
+
+  #desktopDetailPane {
+    display: none;
   }
 
   .mono{font-family:'Space Mono',monospace;}
@@ -159,13 +191,12 @@
   .stat-card .label{font-size:12px; color:var(--ink-soft);}
 
   .fab{
-    position:fixed; right:calc(50% - 220px + 18px); bottom:88px; z-index:30;
+    position:fixed; right:24px; bottom:24px; z-index:30;
     width:52px; height:52px; border-radius:50%;
     background:var(--accent); color:#fff; border:none;
     font-size:26px; box-shadow:0 4px 14px rgba(46,107,110,.4);
     display:flex; align-items:center; justify-content:center; cursor:pointer;
   }
-  @media (max-width:480px){ .fab{ right:18px; } }
 
   nav.bottom{
     position:absolute; bottom:0; left:0; width:100%; background:var(--card);
@@ -183,10 +214,16 @@
     position:fixed; inset:0; background:rgba(32,36,28,.42); z-index:50;
     display:flex; align-items:flex-end; justify-content:center;
   }
+  @media (min-width: 768px) {
+    .overlay { align-items: center; }
+  }
   .sheet{
     background:var(--paper); width:100%; max-width:480px; border-radius:18px 18px 0 0;
     max-height:92vh; overflow-y:auto; padding:18px 18px calc(18px + env(safe-area-inset-bottom));
     animation:slideup .18s ease-out;
+  }
+  @media (min-width: 768px) {
+    .sheet { border-radius: 18px; max-width: 540px; }
   }
   @keyframes slideup{from{transform:translateY(24px); opacity:.4;} to{transform:translateY(0); opacity:1;}}
   .sheet-header{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
@@ -302,6 +339,9 @@
     <div class="search-row" id="searchRow"></div>
   </header>
   <main id="main"></main>
+  <div id="desktopDetailPane">
+    <div class="empty-state"><div class="glyph">👈</div><p>Select an item or location from the left to view details</p></div>
+  </div>
   <button class="fab" id="fabBtn">＋</button>
   <nav class="bottom">
     <button data-tab="items" class="active"><span class="ic">🗂️</span>Items</button>
@@ -326,10 +366,10 @@ function getDynamicVersion(){
 
 const APP_VERSION = getDynamicVersion();
 const VERSION_LOG = [
-  { v: APP_VERSION, note:'Added multi-photo support and client-side OCR parsing for spec sheet images.' },
+  { v: APP_VERSION, note:'Added smart photo purpose splitting (appearance photos for matching only, spec sheets saved for OCR), auto quantity accumulation, and smart location suggestion.' },
+  { v:'r26.0828.202450', note:'Upgraded desktop view to true split-screen dual-column layout.' },
+  { v:'r26.0828.202245', note:'Added multi-photo support and client-side OCR parsing for spec sheet images.' },
   { v:'r26.0828.202345', note:'Added responsive design for automatic mobile and desktop layout switching.' },
-  { v:'r26.0828.195035', note:'Enforced real-time seconds in dynamic versioning and updated container hierarchy logic.' },
-  { v:'r26.0828.172412', note:'Removed random name suggestions, enabled precise history image matching for identical items' },
 ];
 
 const STORE_KEYS = { LOCATIONS:'locations', ITEMS_INDEX:'items-index', ITEM_PREFIX:'item:' };
@@ -469,7 +509,8 @@ let state = {
   itemsIndex:[],
   query:'',
   locationFilter:'',
-  photosDraft:[], // Array of { full, thumb, hash }
+  photosDraft:[],
+  matchedExistingItem:null, // Tracks if identical item is matched for quantity increment & location suggestion
 };
 
 const LOC_TYPES = {
@@ -547,7 +588,7 @@ async function doSignIn(){
 
 async function afterSignIn(){
   document.getElementById('authGate').style.display = 'none';
-  document.getElementById('app').style.display = 'flex';
+  document.getElementById('app').style.display = 'grid';
   const vTag = document.getElementById('versionTag');
   vTag.textContent = APP_VERSION;
   vTag.addEventListener('click', showVersionLog);
@@ -748,12 +789,24 @@ function renderStatsView(){
 
 function bindItemCardClicks(){
   document.querySelectorAll('.item-card').forEach(card=>{
-    card.addEventListener('click', ()=> openItemDetail(card.dataset.id));
+    card.addEventListener('click', ()=>{
+      if(window.innerWidth >= 768){
+        openItemDetailDesktop(card.dataset.id);
+      } else {
+        openItemDetail(card.dataset.id);
+      }
+    });
   });
 }
 function bindLocationCardClicks(){
   document.querySelectorAll('.loc-card').forEach(card=>{
-    card.addEventListener('click', ()=> openLocationDetail(card.dataset.id));
+    card.addEventListener('click', ()=>{
+      if(window.innerWidth >= 768){
+        openLocationDetailDesktop(card.dataset.id);
+      } else {
+        openLocationDetail(card.dataset.id);
+      }
+    });
   });
 }
 
@@ -762,7 +815,7 @@ function openOverlay(html){
   root.innerHTML = `<div class="overlay" id="ovBg"><div class="sheet">${html}</div></div>`;
   document.getElementById('ovBg').addEventListener('click', e=>{ if(e.target.id==='ovBg') closeOverlay(); });
 }
-function closeOverlay(){ document.getElementById('overlayRoot').innerHTML=''; state.photosDraft=[]; }
+function closeOverlay(){ document.getElementById('overlayRoot').innerHTML=''; state.photosDraft=[]; state.matchedExistingItem=null; }
 
 document.getElementById('fabBtn').addEventListener('click', ()=>{
   openOverlay(`
@@ -864,11 +917,31 @@ async function deleteLocationFlow(id){
   toast('Container deleted');
 }
 
+async function openLocationDetailDesktop(id){
+  const loc = locationById(id);
+  if(!loc) return;
+  const items = state.itemsIndex.filter(i=>i.locationId===id);
+  const pane = document.getElementById('desktopDetailPane');
+  pane.innerHTML = `
+    <div class="sheet-header"><h2>${LOC_TYPES[loc.type].icon} ${escapeHtml(loc.name)}</h2></div>
+    ${loc.parentId?`<div class="loc-path" style="margin-bottom:10px;">Contained in ${escapeHtml(locationPath(loc.parentId))}</div>`:''}
+    ${loc.note?`<p class="note-block" style="margin-top:0;">${escapeHtml(loc.note)}</p>`:''}
+    <label style="margin-top:14px;">Contained Items (${items.length})</label>
+    ${items.length? items.map(it=>`
+      <div class="item-card" data-id="${it.id}" style="margin-bottom:8px;">
+        ${it.thumb?`<img class="item-thumb" src="${it.thumb}">`:`<div class="item-thumb">${LOC_TYPES[loc.type].icon}</div>`}
+        <div class="item-info"><p class="name">${escapeHtml(it.name)}</p><span class="qty-badge">×${it.qty??1}</span></div>
+      </div>`).join('') : `<p class="hint">This container is currently empty</p>`}
+    <button class="btn-secondary" id="editLocDesktopBtn" style="margin-top:14px;">Edit Container</button>
+  `;
+  document.getElementById('editLocDesktopBtn').addEventListener('click', ()=> openLocationForm(loc));
+  pane.querySelectorAll('.item-card').forEach(c=> c.addEventListener('click', ()=> openItemDetailDesktop(c.dataset.id)));
+}
+
 function openLocationDetail(id){
   const loc = locationById(id);
   if(!loc) return;
   const items = state.itemsIndex.filter(i=>i.locationId===id);
-  const children = state.locations.filter(l=>l.parentId===id);
   openOverlay(`
     <div class="sheet-header"><h2>${LOC_TYPES[loc.type].icon} ${escapeHtml(loc.name)}</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
     ${loc.parentId?`<div class="loc-path" style="margin-bottom:10px;">Contained in ${escapeHtml(locationPath(loc.parentId))}</div>`:''}
@@ -892,11 +965,12 @@ function openItemForm(existingIndexEntry){
     return;
   }
   state.photosDraft = [];
+  state.matchedExistingItem = null;
   const locOptions = state.locations.map(l=>`<option value="${l.id}">${LOC_TYPES[l.type].icon} ${escapeHtml(locationPath(l.id))}</option>`).join('');
 
   openOverlay(`
     <div class="sheet-header"><h2>${existingIndexEntry?'Edit Item':'New Item'}</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
-    <label>Photos (Multiple photos supported, first photo matches history & OCR spec sheet)</label>
+    <label>Photos (Appearance photos for recognition only; Spec sheets saved & OCR recorded)</label>
     <div class="photo-manager" id="photoManagerContainer">
       <label class="add-photo-btn" for="photoInput">
         <span style="font-size:18px;">＋</span>Add Photo
@@ -904,6 +978,7 @@ function openItemForm(existingIndexEntry){
       <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none;">
     </div>
     <div id="aiNameStatus" class="hint" style="color:var(--accent);"></div>
+    <div id="locationSuggestionBox" class="hint" style="background:var(--card); border:1px solid var(--line); padding:10px; border-radius:8px; margin-top:8px; display:none;"></div>
     <label style="display:flex; justify-content:space-between; align-items:center;">
       <span>Name (e.g. 滑鼠 / Mouse)</span>
       <button type="button" id="scanBarcodeBtn" class="btn-secondary" style="padding:2px 8px; font-size:11px;">📷 Scan Barcode</button>
@@ -911,7 +986,7 @@ function openItemForm(existingIndexEntry){
     <input type="text" id="itName" placeholder="Enter item name">
     <div id="scannerContainer" style="display:none; margin-top:10px;"><div id="reader" style="width:100%;"></div><button type="button" class="btn-secondary" id="closeScannerBtn" style="margin-top:6px; width:100%;">Close Camera</button></div>
     <div class="row2">
-      <div><label>Quantity</label><input type="number" id="itQty" min="0" value="1"></div>
+      <div><label>Quantity to Add</label><input type="number" id="itQty" min="1" value="1"></div>
       <div>
         <label>Category (Optional)</label>
         <input type="text" id="itCategory" list="catList" placeholder="Tools, Electronics...">
@@ -924,7 +999,7 @@ function openItemForm(existingIndexEntry){
     <input type="text" id="itTags" placeholder="e.g. frequent, camping">
     <label>Notes & Spec OCR Info (Optional)</label>
     <textarea id="itNote" placeholder="Any additional notes or OCR spec sheet info..."></textarea>
-    <button class="btn-primary" id="saveItemBtn">${existingIndexEntry?'Save Changes':'Create Item'}</button>
+    <button class="btn-primary" id="saveItemBtn">${existingIndexEntry?'Save Changes':'Create / Add Item'}</button>
     ${existingIndexEntry?'<button class="btn-danger" id="delItemBtn">Delete Item</button>':''}
   `);
 
@@ -937,7 +1012,7 @@ function openItemForm(existingIndexEntry){
     getItem(existingIndexEntry.id).then(full=>{
       if(!full) return;
       document.getElementById('itName').value = full.name||'';
-      document.getElementById('itQty').value = full.qty ?? 1;
+      document.getElementById('itQty').value = 1; // Default add increment
       document.getElementById('itCategory').value = full.category||'';
       document.getElementById('itLocation').value = full.locationId||'';
       document.getElementById('itTags').value = full.tags||'';
@@ -946,7 +1021,6 @@ function openItemForm(existingIndexEntry){
         state.photosDraft = [...full.photos];
         renderPhotoManager();
       } else if(full.photo){
-        // Backward compatibility for single photo
         state.photosDraft = [{ full: full.photo, thumb: full.thumb||full.photo, hash: full.photoHash||0 }];
         renderPhotoManager();
       }
@@ -1016,51 +1090,65 @@ async function handlePhotoInput(e){
   const file = e.target.files[0];
   if(!file) return;
   const aiStatus = document.getElementById('aiNameStatus');
-  aiStatus.innerHTML = '<span class="loading-dot"></span>Processing photo, matching history & running OCR...';
+  const suggestionBox = document.getElementById('locationSuggestionBox');
+  aiStatus.innerHTML = '<span class="loading-dot"></span>Processing photo & matching history...';
 
   try{
     const processed = await compressImage(file, 900, 0.72);
-    state.photosDraft.push(processed);
-    renderPhotoManager();
 
-    // If it's the first photo, check for identical item history matching
-    if(state.photosDraft.length === 1){
-      let matchedItem = null;
-      for(const indexEntry of state.itemsIndex){
-        const fullRec = await getItem(indexEntry.id);
-        if(fullRec && fullRec.photoHash && Math.abs(fullRec.photoHash - processed.hash) < 15000){
-          matchedItem = fullRec;
-          break;
-        }
-      }
-
-      if(matchedItem){
-        document.getElementById('itName').value = matchedItem.name;
-        if(matchedItem.category) document.getElementById('itCategory').value = matchedItem.category;
-        if(matchedItem.locationId) document.getElementById('itLocation').value = matchedItem.locationId;
-        if(matchedItem.tags) document.getElementById('itTags').value = matchedItem.tags;
-        if(matchedItem.note) document.getElementById('itNote').value = matchedItem.note;
-        aiStatus.textContent = `🎯 Identical item detected! Auto-applied: ${matchedItem.name}`;
-        toast('Applied existing name from matching history photo');
-        return;
+    // Check if an identical item exists in the system database via image hash matching
+    let matchedItem = null;
+    let fullMatchedRecord = null;
+    for(const indexEntry of state.itemsIndex){
+      const fullRec = await getItem(indexEntry.id);
+      if(fullRec && fullRec.photoHash && Math.abs(fullRec.photoHash - processed.hash) < 15000){
+        matchedItem = indexEntry;
+        fullMatchedRecord = fullRec;
+        break;
       }
     }
 
-    // Run OCR to check if it's a spec sheet
-    aiStatus.textContent = '🔍 Running OCR spec sheet text extraction...';
+    if(matchedItem && fullMatchedRecord){
+      // Identical item found: Appearance photo is for recognition only, do NOT add to photosDraft storage
+      state.matchedExistingItem = fullMatchedRecord;
+      document.getElementById('itName').value = fullMatchedRecord.name;
+      if(fullMatchedRecord.category) document.getElementById('itCategory').value = fullMatchedRecord.category;
+      if(fullMatchedRecord.tags) document.getElementById('itTags').value = fullMatchedRecord.tags;
+      if(fullMatchedRecord.note) document.getElementById('itNote').value = fullMatchedRecord.note;
+      
+      const suggestedLocName = locationPath(fullMatchedRecord.locationId) || 'Unassigned';
+      document.getElementById('itLocation').value = fullMatchedRecord.locationId || '';
+
+      suggestionBox.style.display = 'block';
+      suggestionBox.innerHTML = `💡 <b>Smart Guidance:</b> Identical item detected. Recommended container: <b>${escapeHtml(suggestedLocName)}</b> (Quantity will be accumulated). You can change container below if needed.`;
+      
+      aiStatus.textContent = `🎯 Recognized identical item: ${fullMatchedRecord.name}`;
+      toast('Identical item matched for quantity increment');
+      return;
+    }
+
+    // If not an identical item, check if it's a Spec Sheet via OCR
+    aiStatus.textContent = '🔍 Running OCR spec sheet analysis...';
     const worker = await Tesseract.createWorker('eng+chi_tra');
     const ret = await worker.recognize(processed.full);
     await worker.terminate();
 
     const recognizedText = ret.data.text.trim();
-    if(recognizedText.length > 5){
+    if(recognizedText.length > 8){
+      // Spec sheet detected: Save this photo into photosDraft and record OCR info
+      state.photosDraft.push(processed);
+      renderPhotoManager();
+
       const noteField = document.getElementById('itNote');
       const currentNote = noteField.value;
       noteField.value = currentNote ? currentNote + '\n--- OCR Spec ---\n' + recognizedText : '--- OCR Spec ---\n' + recognizedText;
-      aiStatus.textContent = `✨ Spec sheet OCR parsed successfully and added to notes!`;
-      toast('OCR spec sheet text extracted');
+      aiStatus.textContent = `✨ Spec sheet detected! Photo saved and OCR text recorded.`;
+      toast('Spec sheet photo saved & OCR extracted');
     } else {
-      aiStatus.textContent = `✨ Photo added successfully!`;
+      // Regular new item photo: Save to photosDraft
+      state.photosDraft.push(processed);
+      renderPhotoManager();
+      aiStatus.textContent = `✨ New item photo added successfully!`;
     }
   }catch(err){
     toast('Image processing or OCR failed');
@@ -1072,39 +1160,62 @@ async function saveItemFromForm(existingIndexEntry){
   stopBarcodeScanner();
   const name = document.getElementById('itName').value.trim();
   if(!name){ toast('Please enter item name'); return; }
-  const qty = parseFloat(document.getElementById('itQty').value) || 0;
+  const addQty = parseFloat(document.getElementById('itQty').value) || 1;
   const category = document.getElementById('itCategory').value.trim();
   const locationId = document.getElementById('itLocation').value;
   const tags = document.getElementById('itTags').value.trim();
   const note = document.getElementById('itNote').value.trim();
   const now = Date.now();
 
-  let id, createdAt;
-  if(existingIndexEntry){
-    id = existingIndexEntry.id;
-    const prevFull = await getItem(id) || {};
-    createdAt = prevFull.createdAt || now;
-  } else {
-    id = uid('item'); createdAt = now;
+  let targetItem = existingIndexEntry ? await getItem(existingIndexEntry.id) : state.matchedExistingItem;
+
+  if(targetItem){
+    // Accumulate quantity if storing in the same location, or update record
+    targetItem.qty = (parseFloat(targetItem.qty) || 1) + addQty;
+    targetItem.category = category || targetItem.category;
+    targetItem.locationId = locationId || targetItem.locationId;
+    targetItem.tags = tags || targetItem.tags;
+    targetItem.note = note || targetItem.note;
+    targetItem.updatedAt = now;
+
+    // Append new spec photos if any added during this session
+    if(state.photosDraft.length > 0){
+      if(!targetItem.photos) targetItem.photos = [];
+      targetItem.photos = targetItem.photos.concat(state.photosDraft);
+    }
+
+    await saveItemRecord(targetItem);
+
+    const indexEntry = { id: targetItem.id, name: targetItem.name, qty: targetItem.qty, category: targetItem.category, locationId: targetItem.locationId, tags: targetItem.tags, thumb: targetItem.thumb || (targetItem.photos[0] ? targetItem.photos[0].thumb : undefined), updatedAt: now };
+    const idx = state.itemsIndex.findIndex(i=>i.id===targetItem.id);
+    if(idx>=0) state.itemsIndex[idx]=indexEntry; else state.itemsIndex.push(indexEntry);
+    await saveItemsIndex(state.itemsIndex);
+
+    closeOverlay();
+    renderSearchRow(); renderMain();
+    toast(`Quantity accumulated! Total: ×${targetItem.qty}`);
+    return;
   }
 
+  // Brand new item creation
+  let id = uid('item');
+  let createdAt = now;
   const photos = state.photosDraft;
   const firstPhoto = photos.length > 0 ? photos[0] : null;
   const photo = firstPhoto ? firstPhoto.full : undefined;
   const thumb = firstPhoto ? firstPhoto.thumb : undefined;
   const photoHash = firstPhoto ? firstPhoto.hash : undefined;
 
-  const fullRecord = { id, name, qty, category, locationId, tags, note, photos, photo, photoHash, createdAt, updatedAt: now };
+  const fullRecord = { id, name, qty: addQty, category, locationId, tags, note, photos, photo, photoHash, createdAt, updatedAt: now };
   await saveItemRecord(fullRecord);
 
-  const indexEntry = { id, name, qty, category, locationId, tags, thumb, updatedAt: now };
-  const idx = state.itemsIndex.findIndex(i=>i.id===id);
-  if(idx>=0) state.itemsIndex[idx]=indexEntry; else state.itemsIndex.push(indexEntry);
+  const indexEntry = { id, name, qty: addQty, category, locationId, tags, thumb, updatedAt: now };
+  state.itemsIndex.push(indexEntry);
   await saveItemsIndex(state.itemsIndex);
 
   closeOverlay();
   renderSearchRow(); renderMain();
-  toast(existingIndexEntry ? 'Item updated' : 'Item created');
+  toast('Item created successfully');
 }
 
 async function deleteItemFlow(id){
@@ -1115,6 +1226,33 @@ async function deleteItemFlow(id){
   closeOverlay();
   renderSearchRow(); renderMain();
   toast('Item deleted');
+}
+
+async function openItemDetailDesktop(id){
+  const indexEntry = state.itemsIndex.find(i=>i.id===id);
+  if(!indexEntry) return;
+  const full = await getItem(id);
+  if(!full) return;
+  const t = locationTypeOf(full.locationId);
+  const tinfo = LOC_TYPES[t]||LOC_TYPES.location;
+  const photoList = (full.photos && full.photos.length > 0) 
+    ? full.photos.map(p=>`<img class="detail-photo" src="${p.full}">`).join('')
+    : (full.photo ? `<img class="detail-photo" src="${full.photo}">` : `<div class="detail-photo">${tinfo.icon}</div>`);
+
+  const pane = document.getElementById('desktopDetailPane');
+  pane.innerHTML = `
+    <div class="sheet-header"><h2>Item Details</h2></div>
+    <div class="detail-photo-slider">${photoList}</div>
+    <p class="detail-title">${escapeHtml(full.name)}</p>
+    <div class="detail-row"><span class="k">Quantity</span><span class="v">${full.qty ?? 1}</span></div>
+    ${full.category?`<div class="detail-row"><span class="k">Category</span><span class="v">${escapeHtml(full.category)}</span></div>`:''}
+    <div class="detail-row"><span class="k">Stored In</span><span class="v"><span class="tag-badge ${tinfo.cls}">${escapeHtml(locationPath(full.locationId)||'Unassigned')}</span></span></div>
+    <div class="detail-row"><span class="k">Updated</span><span class="v">${new Date(full.updatedAt).toLocaleString('zh-TW')}</span></div>
+    ${full.tags ? `<div style="margin-top:10px;">${full.tags.split(',').map(t=>t.trim()).filter(Boolean).map(t=>`<span class="tag-chip">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+    ${full.note ? `<div class="note-block">${escapeHtml(full.note)}</div>` : ''}
+    <button class="btn-primary" id="editItemDesktopBtn" style="margin-top:14px;">Edit Item</button>
+  `;
+  document.getElementById('editItemDesktopBtn').addEventListener('click', ()=> openItemForm(indexEntry));
 }
 
 async function openItemDetail(id){
