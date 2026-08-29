@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <!-- IDENTIFIER: HOMESTOCK-GITHUB-DEPLOY -->
-<!-- VERSION: r26.0828.172412 -->
+<!-- VERSION: r26.0828.195035 -->
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -291,7 +291,7 @@
 <div id="overlayRoot"></div>
 
 <script>
-// Dynamically generate version string using current system time
+// Dynamically generate version string using current system time (including real seconds)
 function getDynamicVersion(){
   const now = new Date();
   const yy = String(now.getFullYear()).slice(-2);
@@ -305,9 +305,9 @@ function getDynamicVersion(){
 
 const APP_VERSION = getDynamicVersion();
 const VERSION_LOG = [
-  { v: APP_VERSION, note:'Removed random name suggestions, enabled precise history image matching for identical items' },
-  { v:'r26.0828.155303', note:'Enabled real-time dynamic system time versioning (hhmmss)' },
-  { v:'r26.0828.135848', note:'Aligned login page version tag below title matching right edge' },
+  { v: APP_VERSION, note:'Enforced real-time seconds in dynamic versioning and updated container hierarchy logic.' },
+  { v:'r26.0828.194900', note:'Updated location definitions: Items can be in Location/Box/Shelf; Boxes can be in Location/Shelf; Shelves can be in Location.' },
+  { v:'r26.0828.172412', note:'Removed random name suggestions, enabled precise history image matching for identical items' },
   { v:'r26.0827', note:'Initial release: Location management, item creation, search and filter' },
 ];
 
@@ -452,10 +452,9 @@ let state = {
 };
 
 const LOC_TYPES = {
-  shelf:{label:'Shelf', icon:'📚', cls:'tag-shelf'},
-  drawer:{label:'Drawer', icon:'🗃️', cls:'tag-drawer'},
+  location:{label:'Location', icon:'📍', cls:'tag-other'},
+  shelf:{label:'Shelf (料架)', icon:'📚', cls:'tag-shelf'},
   box:{label:'Box', icon:'📦', cls:'tag-box'},
-  other:{label:'Other', icon:'🏷️', cls:'tag-other'},
 };
 
 function locationById(id){ return state.locations.find(l=>l.id===id); }
@@ -465,7 +464,7 @@ function locationPath(id){
   return parts.join(' › ');
 }
 function locationTypeOf(id){
-  const l=locationById(id); return l? l.type : 'other';
+  const l=locationById(id); return l? l.type : 'location';
 }
 
 function compressImage(file, maxSize, quality){
@@ -565,7 +564,7 @@ async function exportJsonData(){
 }
 
 async function exportCsvData(){
-  let csv = '\uFEFFName,Quantity,Category,Location,Tags,Updated\n';
+  let csv = '\uFEFFName,Quantity,Category,Location/Box/Shelf,Tags,Updated\n';
   state.itemsIndex.forEach(i=>{
     const locName = locationPath(i.locationId) || 'Unassigned';
     csv += `"${i.name || ''}",${i.qty || 1},"${i.category || ''}","${locName}","${i.tags || ''}","${new Date(i.updatedAt).toLocaleString()}"\n`;
@@ -610,7 +609,7 @@ function renderSearchRow(){
       <input id="searchInput" type="text" placeholder="Search name, tags..." value="${escapeAttr(state.query)}">
     </div>
     <select class="filter-select" id="locFilterSelect">
-      <option value="">All Locations</option>
+      <option value="">All Containers</option>
       ${state.locations.map(l=>`<option value="${l.id}" ${state.locationFilter===l.id?'selected':''}>${escapeHtml(l.name)}</option>`).join('')}
     </select>
   `;
@@ -622,7 +621,7 @@ function renderMain(){
   const main = document.getElementById('main');
   document.getElementById('headerCount').textContent = state.tab==='items'
     ? `${state.itemsIndex.length} items`
-    : state.tab==='locations' ? `${state.locations.length} locations` : 'Overview';
+    : state.tab==='locations' ? `${state.locations.length} containers` : 'Overview';
 
   if(state.tab==='items'){ main.innerHTML = renderItemsList(); bindItemCardClicks(); }
   else if(state.tab==='locations'){ main.innerHTML = renderLocationsList(); bindLocationCardClicks(); }
@@ -645,7 +644,7 @@ function renderItemsList(){
   list = [...list].sort((a,b)=> (b.updatedAt||0)-(a.updatedAt||0));
   return list.map(it=>{
     const t = locationTypeOf(it.locationId);
-    const tinfo = LOC_TYPES[t] || LOC_TYPES.other;
+    const tinfo = LOC_TYPES[t] || LOC_TYPES.location;
     const thumb = it.thumb
       ? `<img class="item-thumb" src="${it.thumb}">`
       : `<div class="item-thumb">${tinfo.icon}</div>`;
@@ -656,7 +655,7 @@ function renderItemsList(){
         <p class="name">${escapeHtml(it.name)}</p>
         <div class="item-meta">
           <span class="qty-badge">×${it.qty ?? 1}</span>
-          ${it.locationId ? `<span class="tag-badge ${tinfo.cls}">${escapeHtml(locationPath(it.locationId)||'Unclassified')}</span>` : `<span class="tag-badge tag-other">No Location</span>`}
+          ${it.locationId ? `<span class="tag-badge ${tinfo.cls}">${escapeHtml(locationPath(it.locationId)||'Unclassified')}</span>` : `<span class="tag-badge tag-other">No Container</span>`}
         </div>
         ${it.tags ? `<div class="tags-line">${escapeHtml(it.tags)}</div>` : ''}
       </div>
@@ -667,12 +666,12 @@ function renderItemsList(){
 function renderLocationsList(){
   if(state.locations.length===0){
     return `<div class="empty-state"><div class="glyph">🏷️</div>
-      <p>No locations created yet</p>
-      <p>Create locations like "Living Room Shelf" or "Toolbox" first</p>
+      <p>No locations, boxes, or shelves created yet</p>
+      <p>Create a Location, Box, or Shelf first</p>
     </div>`;
   }
-  const groups = {shelf:[],drawer:[],box:[],other:[]};
-  state.locations.forEach(l=> (groups[l.type]||groups.other).push(l));
+  const groups = {location:[],shelf:[],box:[]};
+  state.locations.forEach(l=> (groups[l.type]||groups.location).push(l));
   let html='';
   Object.keys(LOC_TYPES).forEach(typeKey=>{
     const arr = groups[typeKey];
@@ -683,10 +682,10 @@ function renderLocationsList(){
       const path = l.parentId ? locationPath(l.parentId) : '';
       return `
       <div class="loc-card" data-id="${l.id}">
-        <div class="loc-icon">${LOC_TYPES[l.type]?.icon || '🏷️'}</div>
+        <div class="loc-icon">${LOC_TYPES[l.type]?.icon || '📍'}</div>
         <div class="loc-body">
           <p class="loc-name">${escapeHtml(l.name)}</p>
-          ${path ? `<div class="loc-path">Located in ${escapeHtml(path)}</div>` : ''}
+          ${path ? `<div class="loc-path">Contained in ${escapeHtml(path)}</div>` : ''}
         </div>
         <div class="loc-count">${count} items</div>
       </div>`;
@@ -711,7 +710,7 @@ function renderStatsView(){
         <div class="num">${totalQty}</div>
       </div>
       <div class="stat-card">
-        <div class="label">Total Locations</div>
+        <div class="label">Containers Count</div>
         <div class="num">${totalLocs}</div>
       </div>
       <div class="stat-card">
@@ -719,11 +718,11 @@ function renderStatsView(){
         <div class="num" style="font-size:14px; padding-top:6px;">🟢 Google Cloud</div>
       </div>
     </div>
-    <div class="loc-group-title">Location Distribution</div>
+    <div class="loc-group-title">Container Distribution</div>
     ${state.locations.map(l=>{
       const count = state.itemsIndex.filter(i=>i.locationId===l.id).length;
-      return `<div class="detail-row"><span class="k">${LOC_TYPES[l.type]?.icon || '🏷️'} ${escapeHtml(l.name)}</span><span class="v">${count} items</span></div>`;
-    }).join('') || '<p class="hint">No location data available</p>'}
+      return `<div class="detail-row"><span class="k">${LOC_TYPES[l.type]?.icon || '📍'} ${escapeHtml(l.name)}</span><span class="v">${count} items</span></div>`;
+    }).join('') || '<p class="hint">No container data available</p>'}
   `;
 }
 
@@ -750,7 +749,7 @@ document.getElementById('fabBtn').addEventListener('click', ()=>{
     <div class="sheet-header"><h2>Create New</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
     <div class="action-choice">
       <button id="choiceItem"><span class="ic">🗂️</span>New Item</button>
-      <button id="choiceLoc"><span class="ic">🏷️</span>New Location</button>
+      <button id="choiceLoc"><span class="ic">🏷️</span>New Location / Box / Shelf</button>
     </div>
   `);
   document.getElementById('choiceItem').addEventListener('click', ()=> openItemForm(null));
@@ -758,36 +757,68 @@ document.getElementById('fabBtn').addEventListener('click', ()=>{
 });
 
 function openLocationForm(existing){
+  const currentType = existing ? existing.type : 'location';
   const parentOptions = state.locations
     .filter(l=> !existing || l.id!==existing.id)
+    .filter(l=>{
+      if(currentType === 'shelf') return l.type === 'location';
+      if(currentType === 'box') return l.type === 'location' || l.type === 'shelf';
+      if(currentType === 'location') return false;
+      return true;
+    })
     .map(l=>`<option value="${l.id}" ${existing&&existing.parentId===l.id?'selected':''}>${escapeHtml(locationPath(l.id))}</option>`).join('');
+
   openOverlay(`
-    <div class="sheet-header"><h2>${existing?'Edit Location':'New Location'}</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
+    <div class="sheet-header"><h2>${existing?'Edit Container':'New Location / Box / Shelf'}</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
     <label>Name</label>
-    <input type="text" id="locName" placeholder="e.g. Living Room Shelf, Toolbox" value="${existing?escapeAttr(existing.name):''}">
+    <input type="text" id="locName" placeholder="e.g. Living Room, Shelf A, Box 1" value="${existing?escapeAttr(existing.name):''}">
     <label>Type</label>
-    <select id="locType">
-      ${Object.entries(LOC_TYPES).map(([k,v])=>`<option value="${k}" ${existing&&existing.type===k?'selected':''}>${v.icon} ${v.label}</option>`).join('')}
+    <select id="locType" onchange="updateParentOptionsForType(this.value)">
+      <option value="location" ${currentType==='location'?'selected':''}>📍 Location (儲位)</option>
+      <option value="shelf" ${currentType==='shelf'?'selected':''}>📚 Shelf (料架)</option>
+      <option value="box" ${currentType==='box'?'selected':''}>📦 Box (箱)</option>
     </select>
-    <label>Parent Location (Optional)</label>
-    <select id="locParent">
-      <option value="">None</option>
-      ${parentOptions}
-    </select>
+    <div id="parentContainerWrapper" style="${currentType==='location'?'display:none;':''}">
+      <label>Parent Container</label>
+      <select id="locParent">
+        <option value="">None</option>
+        ${parentOptions}
+      </select>
+    </div>
     <label>Notes (Optional)</label>
     <textarea id="locNote" placeholder="Additional info...">${existing?escapeHtml(existing.note||''):''}</textarea>
-    <button class="btn-primary" id="saveLocBtn">${existing?'Save Changes':'Create Location'}</button>
-    ${existing?'<button class="btn-danger" id="delLocBtn">Delete Location</button>':''}
+    <button class="btn-primary" id="saveLocBtn">${existing?'Save Changes':'Create'}</button>
+    ${existing?'<button class="btn-danger" id="delLocBtn">Delete Container</button>':''}
   `);
+
+  window.updateParentOptionsForType = (typeVal) => {
+    const wrapper = document.getElementById('parentContainerWrapper');
+    const parentSel = document.getElementById('locParent');
+    if(typeVal === 'location'){
+      wrapper.style.display = 'none';
+      parentSel.innerHTML = '<option value="">None</option>';
+    } else {
+      wrapper.style.display = 'block';
+      const validParents = state.locations
+        .filter(l=> !existing || l.id!==existing.id)
+        .filter(l=>{
+          if(typeVal === 'shelf') return l.type === 'location';
+          if(typeVal === 'box') return l.type === 'location' || l.type === 'shelf';
+          return false;
+        });
+      parentSel.innerHTML = '<option value="">None</option>' + validParents.map(l=>`<option value="${l.id}" ${existing&&existing.parentId===l.id?'selected':''}>${escapeHtml(locationPath(l.id))}</option>`).join('');
+    }
+  };
+
   document.getElementById('saveLocBtn').addEventListener('click', ()=> saveLocationFromForm(existing));
   if(existing) document.getElementById('delLocBtn').addEventListener('click', ()=> deleteLocationFlow(existing.id));
 }
 
 async function saveLocationFromForm(existing){
   const name = document.getElementById('locName').value.trim();
-  if(!name){ toast('Please enter location name'); return; }
+  if(!name){ toast('Please enter a name'); return; }
   const type = document.getElementById('locType').value;
-  const parentId = document.getElementById('locParent').value || null;
+  const parentId = type === 'location' ? null : (document.getElementById('locParent').value || null);
   const note = document.getElementById('locNote').value.trim();
   if(existing){
     Object.assign(existing, {name,type,parentId,note});
@@ -798,19 +829,19 @@ async function saveLocationFromForm(existing){
   if(!ok){ toast('Save failed'); return; }
   closeOverlay();
   renderSearchRow(); renderMain();
-  toast('Location saved');
+  toast('Container saved');
 }
 
 async function deleteLocationFlow(id){
   if(state.itemsIndex.some(i=>i.locationId===id) || state.locations.some(l=>l.parentId===id)){
-    toast('Location is not empty, please clear items or child locations first'); return;
+    toast('Container is not empty, please clear items or child containers first'); return;
   }
-  if(!confirm('Are you sure you want to delete this location?')) return;
+  if(!confirm('Are you sure you want to delete this container?')) return;
   state.locations = state.locations.filter(l=>l.id!==id);
   await saveLocations(state.locations);
   closeOverlay();
   renderSearchRow(); renderMain();
-  toast('Location deleted');
+  toast('Container deleted');
 }
 
 function openLocationDetail(id){
@@ -820,15 +851,15 @@ function openLocationDetail(id){
   const children = state.locations.filter(l=>l.parentId===id);
   openOverlay(`
     <div class="sheet-header"><h2>${LOC_TYPES[loc.type].icon} ${escapeHtml(loc.name)}</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
-    ${loc.parentId?`<div class="loc-path" style="margin-bottom:10px;">Located in ${escapeHtml(locationPath(loc.parentId))}</div>`:''}
+    ${loc.parentId?`<div class="loc-path" style="margin-bottom:10px;">Contained in ${escapeHtml(locationPath(loc.parentId))}</div>`:''}
     ${loc.note?`<p class="note-block" style="margin-top:0;">${escapeHtml(loc.note)}</p>`:''}
     <label style="margin-top:6px;">Contained Items (${items.length})</label>
     ${items.length? items.map(it=>`
       <div class="item-card" data-id="${it.id}" style="margin-bottom:8px;">
         ${it.thumb?`<img class="item-thumb" src="${it.thumb}">`:`<div class="item-thumb">${LOC_TYPES[loc.type].icon}</div>`}
         <div class="item-info"><p class="name">${escapeHtml(it.name)}</p><span class="qty-badge">×${it.qty??1}</span></div>
-      </div>`).join('') : `<p class="hint">This location is currently empty</p>`}
-    <button class="btn-primary" id="editLocBtn">Edit Location</button>
+      </div>`).join('') : `<p class="hint">This container is currently empty</p>`}
+    <button class="btn-primary" id="editLocBtn">Edit Container</button>
   `);
   document.getElementById('editLocBtn').addEventListener('click', ()=> openLocationForm(loc));
   document.querySelectorAll('#overlayRoot .item-card').forEach(c=> c.addEventListener('click', ()=> openItemDetail(c.dataset.id)));
@@ -836,7 +867,7 @@ function openLocationDetail(id){
 
 function openItemForm(existingIndexEntry){
   if(state.locations.length===0){
-    toast('Please create at least one location first');
+    toast('Please create at least one Location, Box, or Shelf first');
     openLocationForm(null);
     return;
   }
@@ -859,7 +890,7 @@ function openItemForm(existingIndexEntry){
       <span>Name (e.g. 滑鼠 / Mouse)</span>
       <button type="button" id="scanBarcodeBtn" class="btn-secondary" style="padding:2px 8px; font-size:11px;">📷 Scan Barcode</button>
     </label>
-    <input type="text" id="itName" placeholder="Enter item name (first time manual, later auto-matched)">
+    <input type="text" id="itName" placeholder="Enter item name">
     <div id="scannerContainer" style="display:none; margin-top:10px;"><div id="reader" style="width:100%;"></div><button type="button" class="btn-secondary" id="closeScannerBtn" style="margin-top:6px; width:100%;">Close Camera</button></div>
     <div class="row2">
       <div><label>Quantity</label><input type="number" id="itQty" min="0" value="1"></div>
@@ -869,7 +900,7 @@ function openItemForm(existingIndexEntry){
         <datalist id="catList"><option value="Tools"><option value="Electronics"><option value="Stationery"><option value="Apparel"><option value="Kitchen"><option value="Misc"></datalist>
       </div>
     </div>
-    <label>Location</label>
+    <label>Stored In (Location / Box / Shelf)</label>
     <select id="itLocation">${locOptions}</select>
     <label>Tags (Optional, comma separated)</label>
     <input type="text" id="itTags" placeholder="e.g. frequent, camping">
@@ -1036,14 +1067,14 @@ async function openItemDetail(id){
   const full = await getItem(id);
   if(!full){ toast('Failed to load'); closeOverlay(); return; }
   const t = locationTypeOf(full.locationId);
-  const tinfo = LOC_TYPES[t]||LOC_TYPES.other;
+  const tinfo = LOC_TYPES[t]||LOC_TYPES.location;
   document.querySelector('#overlayRoot .sheet').innerHTML = `
     <div class="sheet-header"><h2>Item Details</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
     ${full.photo ? `<img class="detail-photo" src="${full.photo}">` : `<div class="detail-photo">${tinfo.icon}</div>`}
     <p class="detail-title">${escapeHtml(full.name)}</p>
     <div class="detail-row"><span class="k">Quantity</span><span class="v">${full.qty ?? 1}</span></div>
     ${full.category?`<div class="detail-row"><span class="k">Category</span><span class="v">${escapeHtml(full.category)}</span></div>`:''}
-    <div class="detail-row"><span class="k">Location</span><span class="v"><span class="tag-badge ${tinfo.cls}">${escapeHtml(locationPath(full.locationId)||'Unassigned')}</span></span></div>
+    <div class="detail-row"><span class="k">Stored In</span><span class="v"><span class="tag-badge ${tinfo.cls}">${escapeHtml(locationPath(full.locationId)||'Unassigned')}</span></span></div>
     <div class="detail-row"><span class="k">Updated</span><span class="v">${new Date(full.updatedAt).toLocaleString('zh-TW')}</span></div>
     ${full.tags ? `<div style="margin-top:10px;">${full.tags.split(',').map(t=>t.trim()).filter(Boolean).map(t=>`<span class="tag-chip">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
     ${full.note ? `<div class="note-block">${escapeHtml(full.note)}</div>` : ''}
