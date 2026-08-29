@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <!-- IDENTIFIER: HOMESTOCK-GITHUB-DEPLOY -->
-<!-- VERSION: r26.0828.195035 -->
+<!-- VERSION: r26.0828.201518 -->
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -305,8 +305,8 @@ function getDynamicVersion(){
 
 const APP_VERSION = getDynamicVersion();
 const VERSION_LOG = [
-  { v: APP_VERSION, note:'Enforced real-time seconds in dynamic versioning and updated container hierarchy logic.' },
-  { v:'r26.0828.194900', note:'Updated location definitions: Items can be in Location/Box/Shelf; Boxes can be in Location/Shelf; Shelves can be in Location.' },
+  { v: APP_VERSION, note:'Optimized Google OAuth prompt behavior to prevent repetitive consent popups after initial login.' },
+  { v:'r26.0828.195035', note:'Enforced real-time seconds in dynamic versioning and updated container hierarchy logic.' },
   { v:'r26.0828.172412', note:'Removed random name suggestions, enabled precise history image matching for identical items' },
   { v:'r26.0827', note:'Initial release: Location management, item creation, search and filter' },
 ];
@@ -346,7 +346,8 @@ function requestAccessToken(interactive){
       driveState.accessToken = resp.access_token;
       resolve(resp.access_token);
     };
-    driveState.tokenClient.requestAccessToken({ prompt: interactive ? 'consent' : '' });
+    // Use select_account or empty prompt for non-interactive background token refresh
+    driveState.tokenClient.requestAccessToken({ prompt: interactive ? 'select_account' : '' });
   });
 }
 
