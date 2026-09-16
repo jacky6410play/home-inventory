@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <!-- IDENTIFIER: HOMESTOCK-GITHUB-DEPLOY -->
-<!-- VERSION: r26.0916.124512 -->
+<!-- VERSION: r26.0916.124924 -->
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -292,7 +292,7 @@
     <div class="auth-icon">📦</div>
     <div style="display:inline-block; text-align:center; margin-bottom:4px;">
       <h1 id="tLoginTitle">家庫 HomeStock</h1>
-      <div style="font-size:12px; font-weight:700; color:var(--ink); font-family:'Space Mono',monospace; margin-top:4px;" id="loginVersionTag">r26.0916.124512</div>
+      <div style="font-size:12px; font-weight:700; color:var(--ink); font-family:'Space Mono',monospace; margin-top:4px;" id="loginVersionTag">r26.0916.124924</div>
     </div>
     <p style="margin-top:12px;" id="tLoginDesc">把你家的庫存資料，安全地存在你自己的 Google Drive 裡，換手機、換裝置都同步。</p>
     <button id="authSigninBtn" class="google-btn">🔐 <span id="tLoginBtn">使用 Google 帳號登入</span></button>
@@ -305,7 +305,7 @@
 <div id="app" style="display:none;">
   <header class="top">
     <div class="brand">
-      <h1 id="tAppTitle">家庫 HomeStock <span class="version-tag mono" id="versionTag">r26.0916.124512</span></h1>
+      <h1 id="tAppTitle">家庫 HomeStock <span class="version-tag mono" id="versionTag">r26.0916.124924</span></h1>
       <div class="header-tools">
         <button class="lang-btn" id="appLangBtn">EN</button>
         <span class="count mono" id="headerCount"></span>
@@ -328,7 +328,7 @@
 <div id="overlayRoot"></div>
 
 <script>
-const APP_VERSION = 'r26.0916.124512';
+const APP_VERSION = 'r26.0916.124924';
 
 let currentLang = localStorage.getItem('homestock_lang') || 'zh';
 
@@ -540,6 +540,10 @@ async function initTokenClient(){
 
 function requestAccessToken(interactive){
   return new Promise((resolve, reject)=>{
+    if(!driveState.tokenClient){
+      reject(new Error("Google API is blocked or still loading. Please check tracking protection."));
+      return;
+    }
     driveState.tokenClient.callback = (resp)=>{
       if(resp.error){ reject(resp); return; }
       driveState.accessToken = resp.access_token;
@@ -708,17 +712,26 @@ function toast(msg){
 }
 
 async function init(){
+  // 在初始化第一步就立刻綁定按鈕事件與文字，避免後續 Google API 被擋時介面死機
   updateStaticTexts();
-  await initTokenClient();
   document.getElementById('authSigninBtn').onclick = doSignIn;
   document.getElementById('langSwitchBtn').onclick = toggleLanguage;
   document.getElementById('appLangBtn').onclick = toggleLanguage;
   document.getElementById('cloudBtn').onclick = openAccountSheet;
+  
+  // 開始等待 Google 載入 (若被追蹤防護擋下也不會影響上方的按鈕功能)
+  await initTokenClient();
 }
 
 async function doSignIn(){
   const statusEl = document.getElementById('authStatus');
   statusEl.innerHTML = '<span class="loading-dot"></span>Connecting...';
+  
+  if(!driveState.tokenClient){
+    statusEl.innerHTML = '⚠️ Google API 載入失敗或遭阻擋，請關閉瀏覽器追蹤防護。';
+    return;
+  }
+
   try{
     await requestAccessToken(true);
     statusEl.textContent = 'Preparing directory...';
@@ -803,9 +816,9 @@ function showVersionLog(){
 }
 
 const VERSION_LOG = [
-  { v: APP_VERSION, note:'Fixed JS syntax typo in closeOverlay, restored login version tag, and bound direct onclick handlers.' },
+  { v: APP_VERSION, note:'Fixed UI thread block caused by Google API timeout, ensuring buttons remain responsive.' },
+  { v:'r26.0916.124512', note:'Fixed regex mismatch by enforcing static timestamp format.' },
   { v:'r26.0916.123800', note:'Fixed event bindings for sign-in and language toggle buttons.' },
-  { v:'r26.0916.122814', note:'Added bilingual (Traditional Chinese / English) toggle feature.' },
 ];
 
 function renderSearchRow(){
@@ -1108,7 +1121,7 @@ function openLocationDetail(id){
         <div class="item-info"><p class="name">${escapeHtml(it.name)}</p><span class="qty-badge">×${it.qty??1}</span></div>
       </div>`).join('') : `<p class="hint">This container is currently empty</p>`}
     <button class="btn-primary" id="editLocBtn">${t('editContainer')}</button>
-  `);
+  `;
   document.getElementById('editLocBtn').onclick = ()=> openContainerForm(loc);
   document.querySelectorAll('#overlayRoot .item-card').forEach(c=> c.onclick = ()=> openItemDetail(c.dataset.id));
 }
