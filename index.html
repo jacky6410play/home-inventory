@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <!-- IDENTIFIER: HOMESTOCK-GITHUB-DEPLOY -->
-<!-- VERSION: DYNAMIC -->
+<!-- VERSION: r26.0916.124512 -->
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -275,7 +275,7 @@
   }
   .auth-card{ width:100%; max-width:340px; text-align:center; }
   .auth-icon{ font-size:44px; margin-bottom:14px; }
-  .auth-card h1{ font-family:'Space Mono',monospace; font-size:21px; margin:0 0 2px; }
+  .auth-card h1{ font-family:'Space Mono',monospace; font-size:21px; margin:0; }
   .auth-card p{ font-size:13px; color:var(--ink-soft); line-height:1.6; margin:0; }
   .auth-status{ margin-top:14px; font-size:12px; color:var(--ink-faint); min-height:16px; }
   .google-btn{
@@ -290,9 +290,9 @@
 <div id="authGate" class="auth-gate">
   <div class="auth-card">
     <div class="auth-icon">📦</div>
-    <div style="display:inline-block; text-align:left;">
+    <div style="display:inline-block; text-align:center; margin-bottom:4px;">
       <h1 id="tLoginTitle">家庫 HomeStock</h1>
-      <div style="font-size:12px; font-weight:700; color:var(--ink); font-family:'Space Mono',monospace; text-align:right;" id="loginVersionTag"></div>
+      <div style="font-size:12px; font-weight:700; color:var(--ink); font-family:'Space Mono',monospace; margin-top:4px;" id="loginVersionTag">r26.0916.124512</div>
     </div>
     <p style="margin-top:12px;" id="tLoginDesc">把你家的庫存資料，安全地存在你自己的 Google Drive 裡，換手機、換裝置都同步。</p>
     <button id="authSigninBtn" class="google-btn">🔐 <span id="tLoginBtn">使用 Google 帳號登入</span></button>
@@ -305,7 +305,7 @@
 <div id="app" style="display:none;">
   <header class="top">
     <div class="brand">
-      <h1 id="tAppTitle">家庫 HomeStock <span class="version-tag mono" id="versionTag"></span></h1>
+      <h1 id="tAppTitle">家庫 HomeStock <span class="version-tag mono" id="versionTag">r26.0916.124512</span></h1>
       <div class="header-tools">
         <button class="lang-btn" id="appLangBtn">EN</button>
         <span class="count mono" id="headerCount"></span>
@@ -328,19 +328,7 @@
 <div id="overlayRoot"></div>
 
 <script>
-// 動態產生當下精確到秒的系統版本號 (rYY.MMDD.hhmmss)
-function generateDynamicVersion() {
-  const now = new Date();
-  const yy = String(now.getFullYear()).slice(-2);
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const dd = String(now.getDate()).padStart(2, '0');
-  const hh = String(now.getHours()).padStart(2, '0');
-  const min = String(now.getMinutes()).padStart(2, '0');
-  const ss = String(now.getSeconds()).padStart(2, '0');
-  return `r${yy}.${mm}.${dd}.${hh}${min}${ss}`;
-}
-
-const APP_VERSION = generateDynamicVersion();
+const APP_VERSION = 'r26.0916.124512';
 
 let currentLang = localStorage.getItem('homestock_lang') || 'zh';
 
@@ -512,6 +500,7 @@ function updateStaticTexts(){
   document.getElementById('navStats').textContent = t('navStats');
   document.getElementById('langSwitchBtn').textContent = currentLang === 'zh' ? 'Switch to English' : '中文 (繁體)';
   document.getElementById('appLangBtn').textContent = currentLang === 'zh' ? 'EN' : '中';
+  
   const vTag = document.getElementById('versionTag');
   if(vTag) {
     vTag.textContent = APP_VERSION;
@@ -721,10 +710,10 @@ function toast(msg){
 async function init(){
   updateStaticTexts();
   await initTokenClient();
-  document.getElementById('authSigninBtn').addEventListener('click', doSignIn);
-  document.getElementById('langSwitchBtn').addEventListener('click', toggleLanguage);
-  document.getElementById('appLangBtn').addEventListener('click', toggleLanguage);
-  document.getElementById('cloudBtn').addEventListener('click', openAccountSheet);
+  document.getElementById('authSigninBtn').onclick = doSignIn;
+  document.getElementById('langSwitchBtn').onclick = toggleLanguage;
+  document.getElementById('appLangBtn').onclick = toggleLanguage;
+  document.getElementById('cloudBtn').onclick = openAccountSheet;
 }
 
 async function doSignIn(){
@@ -761,9 +750,9 @@ function openAccountSheet(){
     </div>
     <button class="btn-danger" id="signOutBtn" style="margin-top:20px;">${t('signOut')}</button>
   `);
-  document.getElementById('signOutBtn').addEventListener('click', doSignOut);
-  document.getElementById('exportJsonBtn').addEventListener('click', exportJsonData);
-  document.getElementById('exportCsvBtn').addEventListener('click', exportCsvData);
+  document.getElementById('signOutBtn').onclick = doSignOut;
+  document.getElementById('exportJsonBtn').onclick = exportJsonData;
+  document.getElementById('exportCsvBtn').onclick = exportCsvData;
 }
 
 async function exportJsonData(){
@@ -814,8 +803,9 @@ function showVersionLog(){
 }
 
 const VERSION_LOG = [
-  { v: APP_VERSION, note:'Enabled fully dynamic real-time seconds versioning (rYY.MMDD.hhmmss) for git auto-deployment.' },
+  { v: APP_VERSION, note:'Fixed JS syntax typo in closeOverlay, restored login version tag, and bound direct onclick handlers.' },
   { v:'r26.0916.123800', note:'Fixed event bindings for sign-in and language toggle buttons.' },
+  { v:'r26.0916.122814', note:'Added bilingual (Traditional Chinese / English) toggle feature.' },
 ];
 
 function renderSearchRow(){
@@ -831,8 +821,8 @@ function renderSearchRow(){
       ${state.locations.map(l=>`<option value="${l.id}" ${state.locationFilter===l.id?'selected':''}>${escapeHtml(l.name)}</option>`).join('')}
     </select>
   `;
-  document.getElementById('searchInput').addEventListener('input', e=>{ state.query=e.target.value; renderMain(); });
-  document.getElementById('locFilterSelect').addEventListener('change', e=>{ state.locationFilter=e.target.value; renderMain(); });
+  document.getElementById('searchInput').oninput = e=>{ state.query=e.target.value; renderMain(); };
+  document.getElementById('locFilterSelect').onchange = e=>{ state.locationFilter=e.target.value; renderMain(); };
 }
 
 function renderMain(){
@@ -949,29 +939,33 @@ function renderStatsView(){
 
 function bindItemCardClicks(){
   document.querySelectorAll('.item-card').forEach(card=>{
-    card.addEventListener('click', ()=>{
+    card.onclick = ()=>{
       if(window.innerWidth >= 768){ openItemDetailDesktop(card.dataset.id); }
       else { openItemDetail(card.dataset.id); }
-    });
+    };
   });
 }
 function bindLocationCardClicks(){
   document.querySelectorAll('.loc-card').forEach(card=>{
-    card.addEventListener('click', ()=>{
+    card.onclick = ()=>{
       if(window.innerWidth >= 768){ openLocationDetailDesktop(card.dataset.id); }
       else { openLocationDetail(card.dataset.id); }
-    });
+    };
   });
 }
 
 function openOverlay(html){
   const root=document.getElementById('overlayRoot');
   root.innerHTML = `<div class="overlay" id="ovBg"><div class="sheet">${html}</div></div>`;
-  document.getElementById('ovBg').addEventListener('click', e=>{ if(e.target.id==='ovBg') closeOverlay(); });
+  document.getElementById('ovBg').onclick = e=>{ if(e.target.id==='ovBg') closeOverlay(); };
 }
-function closeOverlay(){ document.getElementById('overlayRoot').innerHTML=''; state.photosDraft=[]; state.matchedExistingItem=null; }
+function closeOverlay(){
+  document.getElementById('overlayRoot').innerHTML='';
+  state.photosDraft=[];
+  state.matchedExistingItem=null;
+}
 
-document.getElementById('fabBtn').addEventListener('click', ()=>{
+document.getElementById('fabBtn').onclick = ()=>{
   openOverlay(`
     <div class="sheet-header"><h2>${t('createNew')}</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
     <div class="action-choice">
@@ -979,9 +973,9 @@ document.getElementById('fabBtn').addEventListener('click', ()=>{
       <button id="choiceLoc"><span class="ic">🏷️</span>${t('newContainer')}</button>
     </div>
   `);
-  document.getElementById('choiceItem').addEventListener('click', ()=> openItemForm(null));
-  document.getElementById('choiceLoc').addEventListener('click', ()=> openContainerForm(null));
-});
+  document.getElementById('choiceItem').onclick = ()=> openItemForm(null);
+  document.getElementById('choiceLoc').onclick = ()=> openContainerForm(null);
+};
 
 function openContainerForm(existing){
   const currentType = existing ? existing.type : 'location';
@@ -1028,8 +1022,8 @@ function openContainerForm(existing){
 
   updateParentOptionsForContainerType(currentType);
 
-  document.getElementById('saveConBtn').addEventListener('click', ()=> saveContainerFromForm(existing));
-  if(existing) document.getElementById('delConBtn').addEventListener('click', ()=> deleteContainerFlow(existing.id));
+  document.getElementById('saveConBtn').onclick = ()=> saveContainerFromForm(existing);
+  if(existing) document.getElementById('delConBtn').onclick = ()=> deleteContainerFlow(existing.id);
 }
 
 async function saveContainerFromForm(existing){
@@ -1090,8 +1084,8 @@ async function openLocationDetailDesktop(id){
       </div>`).join('') : `<p class="hint">This container is currently empty</p>`}
     <button class="btn-secondary" id="editLocDesktopBtn" style="margin-top:14px;">${t('editContainer')}</button>
   `;
-  document.getElementById('editLocDesktopBtn').addEventListener('click', ()=> openContainerForm(loc));
-  pane.querySelectorAll('.item-card').forEach(c=> c.addEventListener('click', ()=> openItemDetailDesktop(c.dataset.id)));
+  document.getElementById('editLocDesktopBtn').onclick = ()=> openContainerForm(loc);
+  pane.querySelectorAll('.item-card').forEach(c=> c.onclick = ()=> openItemDetailDesktop(c.dataset.id));
 }
 
 function openLocationDetail(id){
@@ -1114,9 +1108,9 @@ function openLocationDetail(id){
         <div class="item-info"><p class="name">${escapeHtml(it.name)}</p><span class="qty-badge">×${it.qty??1}</span></div>
       </div>`).join('') : `<p class="hint">This container is currently empty</p>`}
     <button class="btn-primary" id="editLocBtn">${t('editContainer')}</button>
-  `;
-  document.getElementById('editLocBtn').addEventListener('click', ()=> openContainerForm(loc));
-  document.querySelectorAll('#overlayRoot .item-card').forEach(c=> c.addEventListener('click', ()=> openItemDetail(c.dataset.id)));
+  `);
+  document.getElementById('editLocBtn').onclick = ()=> openContainerForm(loc);
+  document.querySelectorAll('#overlayRoot .item-card').forEach(c=> c.onclick = ()=> openItemDetail(c.dataset.id));
 }
 
 function openItemForm(existingIndexEntry){
@@ -1164,12 +1158,12 @@ function openItemForm(existingIndexEntry){
     ${existingIndexEntry?`<button class="btn-danger" id="delItemBtn">${t('deleteItem')}</button>`:''}
   `);
 
-  document.getElementById('photoInput').addEventListener('change', handlePhotoInput);
-  document.getElementById('scanBarcodeBtn').addEventListener('click', startBarcodeScanner);
-  document.getElementById('saveItemBtn').addEventListener('click', ()=> saveItemFromForm(existingIndexEntry));
+  document.getElementById('photoInput').onchange = handlePhotoInput;
+  document.getElementById('scanBarcodeBtn').onclick = startBarcodeScanner;
+  document.getElementById('saveItemBtn').onclick = ()=> saveItemFromForm(existingIndexEntry);
 
   if(existingIndexEntry){
-    document.getElementById('delItemBtn').addEventListener('click', ()=> deleteItemFlow(existingIndexEntry.id));
+    document.getElementById('delItemBtn').onclick = ()=> deleteItemFlow(existingIndexEntry.id);
     getItem(existingIndexEntry.id).then(full=>{
       if(!full) return;
       document.getElementById('itName').value = full.name||'';
@@ -1206,7 +1200,7 @@ function renderPhotoManager(){
   `).join('');
 
   container.innerHTML = thumbsHTML + addBtnHTML;
-  document.getElementById('photoInput').addEventListener('change', handlePhotoInput);
+  document.getElementById('photoInput').onchange = handlePhotoInput;
 }
 
 window.removePhotoDraft = (idx) => {
@@ -1388,7 +1382,7 @@ async function openItemDetailDesktop(id){
     ${full.note ? `<div class="note-block">${escapeHtml(full.note)}</div>` : ''}
     <button class="btn-primary" id="editItemDesktopBtn" style="margin-top:14px;">${t('editItem')}</button>
   `;
-  document.getElementById('editItemDesktopBtn').addEventListener('click', ()=> openItemForm(indexEntry));
+  document.getElementById('editItemDesktopBtn').onclick = ()=> openItemForm(indexEntry);
 }
 
 async function openItemDetail(id){
@@ -1416,17 +1410,17 @@ async function openItemDetail(id){
     ${full.note ? `<div class="note-block">${escapeHtml(full.note)}</div>` : ''}
     <button class="btn-primary" id="editItemBtn">${t('editItem')}</button>
   `;
-  document.getElementById('editItemBtn').addEventListener('click', ()=> openItemForm(indexEntry));
+  document.getElementById('editItemBtn').onclick = ()=> openItemForm(indexEntry);
 }
 
 document.querySelectorAll('nav.bottom button').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
+  btn.onclick = ()=>{
     document.querySelectorAll('nav.bottom button').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     state.tab = btn.dataset.tab;
     renderSearchRow();
     renderMain();
-  });
+  };
 });
 
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
