@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <!-- IDENTIFIER: HOMESTOCK-GITHUB-DEPLOY -->
-<!-- VERSION: r26.0916.124924 -->
+<!-- VERSION: r26.0916.130419 -->
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -292,7 +292,7 @@
     <div class="auth-icon">📦</div>
     <div style="display:inline-block; text-align:center; margin-bottom:4px;">
       <h1 id="tLoginTitle">家庫 HomeStock</h1>
-      <div style="font-size:12px; font-weight:700; color:var(--ink); font-family:'Space Mono',monospace; margin-top:4px;" id="loginVersionTag">r26.0916.124924</div>
+      <div style="font-size:12px; font-weight:700; color:var(--ink); font-family:'Space Mono',monospace; margin-top:4px;" id="loginVersionTag">r26.0916.130419</div>
     </div>
     <p style="margin-top:12px;" id="tLoginDesc">把你家的庫存資料，安全地存在你自己的 Google Drive 裡，換手機、換裝置都同步。</p>
     <button id="authSigninBtn" class="google-btn">🔐 <span id="tLoginBtn">使用 Google 帳號登入</span></button>
@@ -305,7 +305,7 @@
 <div id="app" style="display:none;">
   <header class="top">
     <div class="brand">
-      <h1 id="tAppTitle">家庫 HomeStock <span class="version-tag mono" id="versionTag">r26.0916.124924</span></h1>
+      <h1 id="tAppTitle">家庫 HomeStock <span class="version-tag mono" id="versionTag">r26.0916.130419</span></h1>
       <div class="header-tools">
         <button class="lang-btn" id="appLangBtn">EN</button>
         <span class="count mono" id="headerCount"></span>
@@ -328,7 +328,7 @@
 <div id="overlayRoot"></div>
 
 <script>
-const APP_VERSION = 'r26.0916.124924';
+const APP_VERSION = 'r26.0916.130419';
 
 let currentLang = localStorage.getItem('homestock_lang') || 'zh';
 
@@ -712,14 +712,12 @@ function toast(msg){
 }
 
 async function init(){
-  // 在初始化第一步就立刻綁定按鈕事件與文字，避免後續 Google API 被擋時介面死機
   updateStaticTexts();
   document.getElementById('authSigninBtn').onclick = doSignIn;
   document.getElementById('langSwitchBtn').onclick = toggleLanguage;
   document.getElementById('appLangBtn').onclick = toggleLanguage;
   document.getElementById('cloudBtn').onclick = openAccountSheet;
-  
-  // 開始等待 Google 載入 (若被追蹤防護擋下也不會影響上方的按鈕功能)
+
   await initTokenClient();
 }
 
