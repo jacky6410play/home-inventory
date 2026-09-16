@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <!-- IDENTIFIER: HOMESTOCK-GITHUB-DEPLOY -->
-<!-- VERSION: r26.0916.122814 -->
+<!-- VERSION: DYNAMIC -->
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -292,22 +292,22 @@
     <div class="auth-icon">📦</div>
     <div style="display:inline-block; text-align:left;">
       <h1 id="tLoginTitle">家庫 HomeStock</h1>
-      <div style="font-size:12px; font-weight:700; color:var(--ink); font-family:'Space Mono',monospace; text-align:right;" id="loginVersionTag">r26.0916.122814</div>
+      <div style="font-size:12px; font-weight:700; color:var(--ink); font-family:'Space Mono',monospace; text-align:right;" id="loginVersionTag"></div>
     </div>
     <p style="margin-top:12px;" id="tLoginDesc">把你家的庫存資料，安全地存在你自己的 Google Drive 裡，換手機、換裝置都同步。</p>
     <button id="authSigninBtn" class="google-btn">🔐 <span id="tLoginBtn">使用 Google 帳號登入</span></button>
     <p class="auth-status" id="authStatus"></p>
     <div style="margin-top:16px;">
-      <button class="lang-btn" onclick="toggleLanguage()" id="langSwitchBtn">Switch to English</button>
+      <button class="lang-btn" id="langSwitchBtn">Switch to English</button>
     </div>
   </div>
 </div>
 <div id="app" style="display:none;">
   <header class="top">
     <div class="brand">
-      <h1 id="tAppTitle">家庫 HomeStock <span class="version-tag mono" id="versionTag">r26.0916.122814</span></h1>
+      <h1 id="tAppTitle">家庫 HomeStock <span class="version-tag mono" id="versionTag"></span></h1>
       <div class="header-tools">
-        <button class="lang-btn" onclick="toggleLanguage()" id="appLangBtn">EN</button>
+        <button class="lang-btn" id="appLangBtn">EN</button>
         <span class="count mono" id="headerCount"></span>
         <button class="cloud-btn" id="cloudBtn" title="Google Drive Backup & Settings">☁️</button>
       </div>
@@ -328,7 +328,19 @@
 <div id="overlayRoot"></div>
 
 <script>
-const APP_VERSION = 'r26.0916.122814';
+// 動態產生當下精確到秒的系統版本號 (rYY.MMDD.hhmmss)
+function generateDynamicVersion() {
+  const now = new Date();
+  const yy = String(now.getFullYear()).slice(-2);
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const hh = String(now.getHours()).padStart(2, '0');
+  const min = String(now.getMinutes()).padStart(2, '0');
+  const ss = String(now.getSeconds()).padStart(2, '0');
+  return `r${yy}.${mm}.${dd}.${hh}${min}${ss}`;
+}
+
+const APP_VERSION = generateDynamicVersion();
 
 let currentLang = localStorage.getItem('homestock_lang') || 'zh';
 
@@ -402,8 +414,7 @@ const i18n = {
     camError: '無法存取相機權限',
     imgFailed: '圖片處理失敗',
     smartGuidance: '💡 <b>智慧導引：</b> 偵測到相同物件，建議存放於：',
-    qtyAccumulated: '數量已自動累加！總計：×',
-    switchLangBtn: 'Switch to English'
+    qtyAccumulated: '數量已自動累加！總計：×'
   },
   en: {
     loginTitle: 'HomeStock',
@@ -474,8 +485,7 @@ const i18n = {
     camError: 'Unable to access camera permission',
     imgFailed: 'Image processing failed',
     smartGuidance: '💡 <b>Smart Guidance:</b> Identical item detected. Recommended placement: ',
-    qtyAccumulated: 'Quantity accumulated! Total: ×',
-    switchBtn: '中文 (繁體)'
+    qtyAccumulated: 'Quantity accumulated! Total: ×'
   }
 };
 
@@ -502,9 +512,16 @@ function updateStaticTexts(){
   document.getElementById('navStats').textContent = t('navStats');
   document.getElementById('langSwitchBtn').textContent = currentLang === 'zh' ? 'Switch to English' : '中文 (繁體)';
   document.getElementById('appLangBtn').textContent = currentLang === 'zh' ? 'EN' : '中';
-  document.getElementById('versionTag').addEventListener('click', showVersionLog);
-  document.getElementById('loginVersionTag').textContent = APP_VERSION;
-  document.getElementById('loginVersionTag').addEventListener('click', showVersionLog);
+  const vTag = document.getElementById('versionTag');
+  if(vTag) {
+    vTag.textContent = APP_VERSION;
+    vTag.onclick = showVersionLog;
+  }
+  const lTag = document.getElementById('loginVersionTag');
+  if(lTag) {
+    lTag.textContent = APP_VERSION;
+    lTag.onclick = showVersionLog;
+  }
 }
 
 const STORE_KEYS = { LOCATIONS:'locations', ITEMS_INDEX:'items-index', ITEM_PREFIX:'item:' };
@@ -705,6 +722,8 @@ async function init(){
   updateStaticTexts();
   await initTokenClient();
   document.getElementById('authSigninBtn').addEventListener('click', doSignIn);
+  document.getElementById('langSwitchBtn').addEventListener('click', toggleLanguage);
+  document.getElementById('appLangBtn').addEventListener('click', toggleLanguage);
   document.getElementById('cloudBtn').addEventListener('click', openAccountSheet);
 }
 
@@ -795,8 +814,8 @@ function showVersionLog(){
 }
 
 const VERSION_LOG = [
-  { v: APP_VERSION, note:'Added bilingual (Traditional Chinese / English) toggle feature.' },
-  { v:'r26.0828.211429', note:'Removed blocking OCR worker dependencies and fixed version header rendering.' },
+  { v: APP_VERSION, note:'Enabled fully dynamic real-time seconds versioning (rYY.MMDD.hhmmss) for git auto-deployment.' },
+  { v:'r26.0916.123800', note:'Fixed event bindings for sign-in and language toggle buttons.' },
 ];
 
 function renderSearchRow(){
@@ -950,7 +969,7 @@ function openOverlay(html){
   root.innerHTML = `<div class="overlay" id="ovBg"><div class="sheet">${html}</div></div>`;
   document.getElementById('ovBg').addEventListener('click', e=>{ if(e.target.id==='ovBg') closeOverlay(); });
 }
-function closeOverlay(){ document.getElementById('overlayRoot'].innerHTML=''; state.photosDraft=[]; state.matchedExistingItem=null; }
+function closeOverlay(){ document.getElementById('overlayRoot').innerHTML=''; state.photosDraft=[]; state.matchedExistingItem=null; }
 
 document.getElementById('fabBtn').addEventListener('click', ()=>{
   openOverlay(`
@@ -1095,7 +1114,7 @@ function openLocationDetail(id){
         <div class="item-info"><p class="name">${escapeHtml(it.name)}</p><span class="qty-badge">×${it.qty??1}</span></div>
       </div>`).join('') : `<p class="hint">This container is currently empty</p>`}
     <button class="btn-primary" id="editLocBtn">${t('editContainer')}</button>
-  `);
+  `;
   document.getElementById('editLocBtn').addEventListener('click', ()=> openContainerForm(loc));
   document.querySelectorAll('#overlayRoot .item-card').forEach(c=> c.addEventListener('click', ()=> openItemDetail(c.dataset.id)));
 }
