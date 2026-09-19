@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <!-- IDENTIFIER: HOMESTOCK-GITHUB-DEPLOY -->
-<!-- VERSION: r26.0919.095509 -->
+<!-- VERSION: r26.0919.100400 -->
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -292,7 +292,9 @@
 <script>
   window.addEventListener('error', function(e) {
       const statusEl = document.getElementById('authStatus');
-      if(statusEl) statusEl.innerHTML += `<br><span style="color:red;font-size:11.5px;">系統警告: ${e.message}</span>`;
+      if(statusEl) {
+          statusEl.innerHTML += '<br><span style="color:red;font-size:11.5px;">系統警告: ' + e.message + '</span>';
+      }
   });
 </script>
 
@@ -301,16 +303,15 @@
     <div class="auth-icon">📦</div>
     <div style="display:inline-block; text-align:center; margin-bottom:4px;">
       <h1 id="tLoginTitle">家庫 HomeStock</h1>
-      <div style="font-size:12px; font-weight:700; color:var(--ink); font-family:'Space Mono',monospace; margin-top:4px;" id="loginVersionTag" onclick="showVersionLog()">r26.0919.095509</div>
+      <div style="font-size:12px; font-weight:700; color:var(--ink); font-family:'Space Mono',monospace; margin-top:4px;" id="loginVersionTag" onclick="showVersionLog()">r26.0919.100400</div>
     </div>
     <p style="margin-top:12px;" id="tLoginDesc">把你家的庫存資料，安全地存在你自己的 Google Drive 裡，換手機、換裝置都同步。</p>
     
-    <!-- 改用 Inline Onclick 直接綁定，避開所有潛在的 JS 崩潰阻斷 -->
-    <button id="authSigninBtn" class="google-btn" onclick="doSignIn()">🔐 <span id="tLoginBtn">使用 Google 帳號登入</span></button>
+    <button id="authSigninBtn" class="google-btn" onclick="window.doSignIn()">🔐 <span id="tLoginBtn">使用 Google 帳號登入</span></button>
     <p class="auth-status" id="authStatus"></p>
     
     <div style="margin-top:16px;">
-      <button class="lang-btn" id="langSwitchBtn" onclick="toggleLanguage()">Switch to English</button>
+      <button class="lang-btn" id="langSwitchBtn" onclick="window.toggleLanguage()">Switch to English</button>
     </div>
   </div>
 </div>
@@ -318,11 +319,11 @@
 <div id="app" style="display:none;">
   <header class="top">
     <div class="brand">
-      <h1 id="tAppTitle">家庫 HomeStock <span class="version-tag mono" id="versionTag" onclick="showVersionLog()">r26.0919.095509</span></h1>
+      <h1 id="tAppTitle">家庫 HomeStock <span class="version-tag mono" id="versionTag" onclick="showVersionLog()">r26.0919.100400</span></h1>
       <div class="header-tools">
-        <button class="lang-btn" id="appLangBtn" onclick="toggleLanguage()">EN</button>
+        <button class="lang-btn" id="appLangBtn" onclick="window.toggleLanguage()">EN</button>
         <span class="count mono" id="headerCount"></span>
-        <button class="cloud-btn" id="cloudBtn" onclick="openAccountSheet()" title="Google Drive Backup & Settings">☁️</button>
+        <button class="cloud-btn" id="cloudBtn" onclick="window.openAccountSheet()" title="Google Drive Backup & Settings">☁️</button>
       </div>
     </div>
     <div class="search-row" id="searchRow"></div>
@@ -332,27 +333,26 @@
     <div class="empty-state"><div class="glyph">👈</div><p id="tSelectHint">Select an item or container from the left to view details</p></div>
   </div>
   
-  <button class="fab" id="fabBtn" onclick="openCreateMenu()">＋</button>
+  <button class="fab" id="fabBtn" onclick="window.openCreateMenu()">＋</button>
   
   <nav class="bottom">
-    <button class="active" onclick="switchTab(this, 'items')"><span class="ic">🗂️</span><span id="navItems">Items</span></button>
-    <button onclick="switchTab(this, 'locations')"><span class="ic">🏷️</span><span id="navLocs">Locations</span></button>
-    <button onclick="switchTab(this, 'stats')"><span class="ic">📊</span><span id="navStats">Stats</span></button>
+    <button class="active" onclick="window.switchTab(this, 'items')"><span class="ic">🗂️</span><span id="navItems">Items</span></button>
+    <button onclick="window.switchTab(this, 'locations')"><span class="ic">🏷️</span><span id="navLocs">Locations</span></button>
+    <button onclick="window.switchTab(this, 'stats')"><span class="ic">📊</span><span id="navStats">Stats</span></button>
   </nav>
 </div>
 <div id="overlayRoot"></div>
 
 <script>
-const APP_VERSION = 'r26.0919.095509';
+const APP_VERSION = 'r26.0919.100400';
 
-// 終極 localStorage 防護網：即使被追蹤防護完全封死也不會報錯當機
 let currentLang = 'zh';
 try {
   if (typeof localStorage !== 'undefined') {
       currentLang = localStorage.getItem('homestock_lang') || 'zh';
   }
 } catch (e) {
-  // 完全忽略讀取錯誤
+  // 忽略儲存錯誤
 }
 
 const i18n = {
@@ -504,7 +504,7 @@ function t(key){
   return (i18n[currentLang] && i18n[currentLang][key]) || i18n['zh'][key] || key;
 }
 
-function toggleLanguage(){
+window.toggleLanguage = function(){
   try {
     currentLang = currentLang === 'zh' ? 'en' : 'zh';
     try { localStorage.setItem('homestock_lang', currentLang); } catch (e) {}
@@ -513,16 +513,16 @@ function toggleLanguage(){
     renderMain();
   } catch(err) {
     const statusEl = document.getElementById('authStatus');
-    if(statusEl) statusEl.innerHTML = `<span style="color:red">Lang Error: ${err.message}</span>`;
+    if(statusEl) statusEl.innerHTML = '<span style="color:red">Lang Error: ' + err.message + '</span>';
   }
-}
+};
 
 function updateStaticTexts(){
   document.getElementById('tLoginTitle').textContent = t('loginTitle');
   document.getElementById('tLoginDesc').textContent = t('loginDesc');
   document.getElementById('tLoginBtn').textContent = t('loginBtn');
   
-  document.getElementById('tAppTitle').innerHTML = `${t('appTitle')} <span class="version-tag mono" id="versionTag" onclick="showVersionLog()">${APP_VERSION}</span>`;
+  document.getElementById('tAppTitle').innerHTML = t('appTitle') + ' <span class="version-tag mono" id="versionTag" onclick="window.showVersionLog()">' + APP_VERSION + '</span>';
   
   document.getElementById('tSelectHint').textContent = t('selectHint');
   document.getElementById('navItems').textContent = t('navItems');
@@ -539,7 +539,6 @@ const DRIVE_FOLDER_NAME = 'HomeStock 家庫資料';
 
 let driveState = { accessToken:null, tokenClient:null, folderId:null };
 
-// 修復無限迴圈：若超過 5 秒無法載入 Google API，則主動放棄，避免腳本凍結
 function waitForGoogle(){
   return new Promise(resolve=>{
     let attempts = 0;
@@ -594,8 +593,8 @@ async function driveFetch(url, options={}, allowRetry=true){
 
 async function ensureFolder(){
   if(driveState.folderId) return driveState.folderId;
-  const q = encodeURIComponent(`name='${DRIVE_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
-  const res = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`);
+  const q = encodeURIComponent("name='" + DRIVE_FOLDER_NAME + "' and mimeType='application/vnd.google-apps.folder' and trashed=false");
+  const res = await driveFetch('https://www.googleapis.com/drive/v3/files?q=' + q + '&fields=files(id,name)');
   const data = await res.json();
   if(data.files && data.files.length>0){ driveState.folderId = data.files[0].id; return driveState.folderId; }
   const createRes = await driveFetch('https://www.googleapis.com/drive/v3/files', {
@@ -610,8 +609,8 @@ async function ensureFolder(){
 
 async function findFileId(name){
   const folderId = await ensureFolder();
-  const q = encodeURIComponent(`name='${name}' and '${folderId}' in parents and trashed=false`);
-  const res = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`);
+  const q = encodeURIComponent("name='" + name + "' and '" + folderId + "' in parents and trashed=false");
+  const res = await driveFetch('https://www.googleapis.com/drive/v3/files?q=' + q + '&fields=files(id,name)');
   const data = await res.json();
   return (data.files && data.files[0]) ? data.files[0].id : null;
 }
@@ -620,7 +619,7 @@ async function safeGet(key){
   try{
     const fileId = await findFileId(key+'.json');
     if(!fileId) return null;
-    const res = await driveFetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`);
+    const res = await driveFetch('https://www.googleapis.com/drive/v3/files/' + fileId + '?alt=media');
     if(!res.ok) return null;
     return await res.json();
   }catch(e){ return null; }
@@ -633,7 +632,7 @@ async function safeSet(key, value){
     const existingId = await findFileId(name);
     const content = JSON.stringify(value);
     if(existingId){
-      const res = await driveFetch(`https://www.googleapis.com/upload/drive/v3/files/${existingId}?uploadType=media`, {
+      const res = await driveFetch('https://www.googleapis.com/upload/drive/v3/files/' + existingId + '?uploadType=media', {
         method:'PATCH',
         headers:{'Content-Type':'application/json'},
         body: content,
@@ -643,12 +642,12 @@ async function safeSet(key, value){
       const boundary = 'homestock-'+Date.now();
       const metadata = { name, parents:[folderId] };
       const body =
-        `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`+
-        `--${boundary}\r\nContent-Type: application/json\r\n\r\n${content}\r\n`+
-        `--${boundary}--`;
-      const res = await driveFetch(`https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`, {
+        '--' + boundary + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify(metadata) + '\r\n' +
+        '--' + boundary + '\r\nContent-Type: application/json\r\n\r\n' + content + '\r\n' +
+        '--' + boundary + '--';
+      const res = await driveFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
         method:'POST',
-        headers:{'Content-Type': `multipart/related; boundary=${boundary}`},
+        headers:{'Content-Type': 'multipart/related; boundary=' + boundary},
         body,
       });
       return res.ok;
@@ -660,7 +659,7 @@ async function safeDelete(key){
   try{
     const fileId = await findFileId(key+'.json');
     if(!fileId) return;
-    await driveFetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, { method:'DELETE' });
+    await driveFetch('https://www.googleapis.com/drive/v3/files/' + fileId, { method:'DELETE' });
   }catch(e){}
 }
 
@@ -740,24 +739,21 @@ function toast(msg){
   setTimeout(()=>el.remove(),1800);
 }
 
-// 將初始化解耦：立即更新文字，然後在背景載入 Google API，防止阻塞主線程
 async function init(){
   updateStaticTexts();
   await initTokenClient();
 }
 
-// 獨立的 Google 登入邏輯，包含防護措施
-async function doSignIn(){
+window.doSignIn = async function(){
   const statusEl = document.getElementById('authStatus');
   if(!statusEl) return;
   try{
     statusEl.innerHTML = '<span class="loading-dot"></span>Connecting...';
     
     if(!driveState.tokenClient){
-      // 再等一下看看是不是還沒載入完
       await new Promise(r => setTimeout(r, 600));
       if (!driveState.tokenClient) {
-        statusEl.innerHTML = '⚠️ Google 載入失敗！請確認「追蹤防護 / 阻擋第三方 Cookie」是否已關閉。';
+        statusEl.innerHTML = '⚠️ Google API 載入失敗！請確認「追蹤防護 / 阻擋第三方 Cookie」是否已關閉。';
         return;
       }
     }
@@ -769,7 +765,7 @@ async function doSignIn(){
   }catch(e){
     statusEl.textContent = '登入失敗或被取消：' + (e.message || '');
   }
-}
+};
 
 async function afterSignIn(){
   document.getElementById('authGate').style.display = 'none';
@@ -782,49 +778,48 @@ async function afterSignIn(){
   renderMain();
 }
 
-function switchTab(btn, tabName){
+window.switchTab = function(btn, tabName){
   document.querySelectorAll('nav.bottom button').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   state.tab = tabName;
   renderSearchRow();
   renderMain();
-}
+};
 
-function openAccountSheet(){
-  openOverlay(`
-    <div class="sheet-header"><h2>☁️ ${t('cloudBackup')}</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
-    <p class="hint">${t('dataSyncedTo')}</p>
-    <div style="display:flex; gap:8px; margin-top:14px;">
-      <button class="btn-secondary" onclick="exportJsonData()" style="flex:1;">${t('exportJson')}</button>
-      <button class="btn-secondary" onclick="exportCsvData()" style="flex:1;">${t('exportCsv')}</button>
-    </div>
-    <button class="btn-danger" onclick="doSignOut()" style="margin-top:20px;">${t('signOut')}</button>
-  `);
-}
+window.openAccountSheet = function(){
+  const html = '<div class="sheet-header"><h2>☁️ ' + t('cloudBackup') + '</h2><button class="close-btn" onclick="window.closeOverlay()">✕</button></div>' +
+    '<p class="hint">' + t('dataSyncedTo') + '</p>' +
+    '<div style="display:flex; gap:8px; margin-top:14px;">' +
+      '<button class="btn-secondary" onclick="window.exportJsonData()" style="flex:1;">' + t('exportJson') + '</button>' +
+      '<button class="btn-secondary" onclick="window.exportCsvData()" style="flex:1;">' + t('exportCsv') + '</button>' +
+    '</div>' +
+    '<button class="btn-danger" onclick="window.doSignOut()" style="margin-top:20px;">' + t('signOut') + '</button>';
+  window.openOverlay(html);
+};
 
-async function exportJsonData(){
+window.exportJsonData = async function(){
   const allData = { locations: state.locations, items: state.itemsIndex, exportedAt: new Date().toISOString() };
   const blob = new Blob([JSON.stringify(allData, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = `homestock-backup-${Date.now()}.json`;
+  a.href = url; a.download = 'homestock-backup-' + Date.now() + '.json';
   a.click();
   toast(t('jsonExported'));
-}
+};
 
-async function exportCsvData(){
+window.exportCsvData = async function(){
   let csv = '\uFEFFName,Quantity,Category,Placement,Tags,Updated\n';
   state.itemsIndex.forEach(i=>{
     const locName = containerPath(i.locationId) || 'Unassigned';
-    csv += `"${i.name || ''}",${i.qty || 1},"${i.category || ''}","${locName}","${i.tags || ''}","${new Date(i.updatedAt).toLocaleString()}"\n`;
+    csv += '"' + (i.name || '') + '",' + (i.qty || 1) + ',"' + (i.category || '') + '","' + locName + '","' + (i.tags || '') + '","' + new Date(i.updatedAt).toLocaleString() + '"\n';
   });
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = `homestock-inventory-${Date.now()}.csv`;
+  a.href = url; a.download = 'homestock-inventory-' + Date.now() + '.csv';
   a.click();
   toast(t('csvExported'));
-}
+};
 
 window.doSignOut = function(){
   if(driveState.accessToken){
@@ -832,41 +827,38 @@ window.doSignOut = function(){
   }
   driveState.accessToken = null; driveState.folderId = null;
   state.locations = []; state.itemsIndex = [];
-  closeOverlay();
+  window.closeOverlay();
   document.getElementById('app').style.display = 'none';
   document.getElementById('authGate').style.display = 'flex';
   document.getElementById('authStatus').textContent = '';
 };
 
 window.showVersionLog = function(){
-  openOverlay(`
-    <div class="sheet-header"><h2>Version Log</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
-    ${VERSION_LOG.map(l=>`
-      <div class="detail-row" style="align-items:flex-start;">
-        <span class="k mono" style="flex-shrink:0;">${l.v}</span>
-        <span class="v" style="font-weight:400; text-align:left;">${escapeHtml(l.note)}</span>
-      </div>`).join('')}
-  `);
+  const logsHtml = VERSION_LOG.map(l=>'<div class="detail-row" style="align-items:flex-start;"><span class="k mono" style="flex-shrink:0;">' + l.v + '</span><span class="v" style="font-weight:400; text-align:left;">' + escapeHtml(l.note) + '</span></div>').join('');
+  const html = '<div class="sheet-header"><h2>Version Log</h2><button class="close-btn" onclick="window.closeOverlay()">✕</button></div>' + logsHtml;
+  window.openOverlay(html);
 };
 
 const VERSION_LOG = [
-  { v: APP_VERSION, note:'Deployed bulletproof inline-onclick handlers & global error boundary.' },
+  { v: APP_VERSION, note:'Flattened all deep template literals for 100% syntax compatibility and bulletproof inline event binding.' },
   { v:'r26.0916.131357', note:'Added defensive try-catch block around localStorage.' },
 ];
 
 function renderSearchRow(){
   const row = document.getElementById('searchRow');
   if(state.tab!=='items'){ row.innerHTML=''; return; }
-  row.innerHTML = `
-    <div class="search-box">
-      <span>🔍</span>
-      <input id="searchInput" type="text" placeholder="${t('searchPlaceholder')}" value="${escapeAttr(state.query)}">
-    </div>
-    <select class="filter-select" id="locFilterSelect">
-      <option value="">${t('allContainers')}</option>
-      ${state.locations.map(l=>`<option value="${l.id}" ${state.locationFilter===l.id?'selected':''}>${escapeHtml(l.name)}</option>`).join('')}
-    </select>
-  `;
+  
+  const locOptionsHtml = state.locations.map(l=>'<option value="' + l.id + '" ' + (state.locationFilter===l.id?'selected':'') + '>' + escapeHtml(l.name) + '</option>').join('');
+  
+  row.innerHTML = '<div class="search-box">' +
+      '<span>🔍</span>' +
+      '<input id="searchInput" type="text" placeholder="' + t('searchPlaceholder') + '" value="' + escapeAttr(state.query) + '">' +
+    '</div>' +
+    '<select class="filter-select" id="locFilterSelect">' +
+      '<option value="">' + t('allContainers') + '</option>' +
+      locOptionsHtml +
+    '</select>';
+    
   document.getElementById('searchInput').oninput = e=>{ state.query=e.target.value; renderMain(); };
   document.getElementById('locFilterSelect').onchange = e=>{ state.locationFilter=e.target.value; renderMain(); };
 }
@@ -876,8 +868,8 @@ function renderMain(){
   const countEl = document.getElementById('headerCount');
   if(countEl){
     countEl.textContent = state.tab==='items'
-      ? `${state.itemsIndex.length} items`
-      : state.tab==='locations' ? `${state.locations.length} containers` : 'Overview';
+      ? state.itemsIndex.length + ' items'
+      : state.tab==='locations' ? state.locations.length + ' containers' : 'Overview';
   }
 
   if(state.tab==='items'){ main.innerHTML = renderItemsList(); bindItemCardClicks(); }
@@ -893,39 +885,45 @@ function renderItemsList(){
     list = list.filter(i => (i.name||'').toLowerCase().includes(q) || (i.tags||'').toLowerCase().includes(q) || (i.category||'').toLowerCase().includes(q));
   }
   if(list.length===0){
-    return `<div class="empty-state"><div class="glyph">📦</div>
-      <p>${state.itemsIndex.length===0 ? t('noItemsFound') : t('noMatchingItems')}</p>
-      <p>${state.itemsIndex.length===0 ? t('tapToAdd') : t('tryKeywords')}</p>
-    </div>`;
+    const msg1 = state.itemsIndex.length===0 ? t('noItemsFound') : t('noMatchingItems');
+    const msg2 = state.itemsIndex.length===0 ? t('tapToAdd') : t('tryKeywords');
+    return '<div class="empty-state"><div class="glyph">📦</div><p>' + msg1 + '</p><p>' + msg2 + '</p></div>';
   }
   list = [...list].sort((a,b)=> (b.updatedAt||0)-(a.updatedAt||0));
+  
   return list.map(it=>{
     const t_type = containerTypeOf(it.locationId);
     const tinfo = CONTAINER_TYPES[t_type] || CONTAINER_TYPES.location;
     const thumb = it.thumb
-      ? `<img class="item-thumb" src="${it.thumb}">`
-      : `<div class="item-thumb">${tinfo.icon}</div>`;
-    return `
-    <div class="item-card" data-id="${it.id}">
-      ${thumb}
-      <div class="item-info">
-        <p class="name">${escapeHtml(it.name)}</p>
-        <div class="item-meta">
-          <span class="qty-badge">×${it.qty ?? 1}</span>
-          ${it.locationId ? `<span class="tag-badge ${tinfo.cls}">${escapeHtml(containerPath(it.locationId)||'Unclassified')}</span>` : `<span class="tag-badge tag-location">No Placement</span>`}
-        </div>
-        ${it.tags ? `<div class="tags-line">${escapeHtml(it.tags)}</div>` : ''}
-      </div>
-    </div>`;
+      ? '<img class="item-thumb" src="' + it.thumb + '">'
+      : '<div class="item-thumb">' + tinfo.icon + '</div>';
+      
+    const locBadge = it.locationId 
+      ? '<span class="tag-badge '+tinfo.cls+'">' + escapeHtml(containerPath(it.locationId)||'Unclassified') + '</span>' 
+      : '<span class="tag-badge tag-location">No Placement</span>';
+      
+    const tagsLine = it.tags ? '<div class="tags-line">' + escapeHtml(it.tags) + '</div>' : '';
+
+    return '<div class="item-card" data-id="' + it.id + '">' +
+        thumb +
+        '<div class="item-info">' +
+          '<p class="name">' + escapeHtml(it.name) + '</p>' +
+          '<div class="item-meta">' +
+            '<span class="qty-badge">×' + (it.qty ?? 1) + '</span>' +
+            locBadge +
+          '</div>' +
+          tagsLine +
+        '</div>' +
+      '</div>';
   }).join('');
 }
 
 function renderLocationsList(){
   if(state.locations.length===0){
-    return `<div class="empty-state"><div class="glyph">🏷️</div>
-      <p>${t('noLocsFound')}</p>
-      <p>${t('createLocFirst')}</p>
-    </div>`;
+    return '<div class="empty-state"><div class="glyph">🏷️</div>' +
+      '<p>' + t('noLocsFound') + '</p>' +
+      '<p>' + t('createLocFirst') + '</p>' +
+    '</div>';
   }
   const groups = {location:[],shelf:[],box:[],drawer:[],cabinet:[]};
   state.locations.forEach(l=> (groups[l.type]||groups.location).push(l));
@@ -933,19 +931,20 @@ function renderLocationsList(){
   ['location','shelf','box','drawer','cabinet'].forEach(typeKey=>{
     const arr = groups[typeKey];
     if(!arr || arr.length===0) return;
-    html += `<div class="loc-group-title">${CONTAINER_TYPES[typeKey].icon} ${CONTAINER_TYPES[typeKey].label} · ${arr.length}</div>`;
+    html += '<div class="loc-group-title">' + CONTAINER_TYPES[typeKey].icon + ' ' + CONTAINER_TYPES[typeKey].label + ' · ' + arr.length + '</div>';
     html += arr.map(l=>{
       const count = state.itemsIndex.filter(i=>i.locationId===l.id).length;
       const path = l.parentId ? containerPath(l.parentId) : '';
-      return `
-      <div class="loc-card" data-id="${l.id}">
-        <div class="loc-icon">${CONTAINER_TYPES[l.type]?.icon || '🏠'}</div>
-        <div class="loc-body">
-          <p class="loc-name">${escapeHtml(l.name)}</p>
-          ${path ? `<div class="loc-path">In ${escapeHtml(path)}</div>` : ''}
-        </div>
-        <div class="loc-count">${count} items</div>
-      </div>`;
+      const pathHtml = path ? '<div class="loc-path">In ' + escapeHtml(path) + '</div>' : '';
+      
+      return '<div class="loc-card" data-id="' + l.id + '">' +
+          '<div class="loc-icon">' + (CONTAINER_TYPES[l.type]?.icon || '🏠') + '</div>' +
+          '<div class="loc-body">' +
+            '<p class="loc-name">' + escapeHtml(l.name) + '</p>' +
+            pathHtml +
+          '</div>' +
+          '<div class="loc-count">' + count + ' items</div>' +
+        '</div>';
     }).join('');
   });
   return html;
@@ -956,97 +955,101 @@ function renderStatsView(){
   const totalQty = state.itemsIndex.reduce((sum, i)=> sum + (Number(i.qty) || 1), 0);
   const totalLocs = state.locations.length;
   
-  return `
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="label">${t('itemTypes')}</div>
-        <div class="num">${totalItems}</div>
-      </div>
-      <div class="stat-card">
-        <div class="label">${t('totalQty')}</div>
-        <div class="num">${totalQty}</div>
-      </div>
-      <div class="stat-card">
-        <div class="label">${t('containersCount')}</div>
-        <div class="num">${totalLocs}</div>
-      </div>
-      <div class="stat-card">
-        <div class="label">${t('syncStatus')}</div>
-        <div class="num" style="font-size:13px; padding-top:6px;">${t('syncActive')}</div>
-      </div>
-    </div>
-    <div class="loc-group-title">${t('containerDist')}</div>
-    ${state.locations.map(l=>{
+  const distHtml = state.locations.map(l=>{
       const count = state.itemsIndex.filter(i=>i.locationId===l.id).length;
-      return `<div class="detail-row"><span class="k">${CONTAINER_TYPES[l.type]?.icon \vert{}\vert{} '🏠'} ${escapeHtml(l.name)}</span><span class="v">${count} items</span></div>`;
-    }).join('') || '<p class="hint">No container data available</p>'}
-  `;
+      return '<div class="detail-row"><span class="k">' + (CONTAINER_TYPES[l.type]?.icon || '🏠') + ' ' + escapeHtml(l.name) + '</span><span class="v">' + count + ' items</span></div>';
+  }).join('') || '<p class="hint">No container data available</p>';
+
+  return '<div class="stats-grid">' +
+      '<div class="stat-card">' +
+        '<div class="label">' + t('itemTypes') + '</div>' +
+        '<div class="num">' + totalItems + '</div>' +
+      '</div>' +
+      '<div class="stat-card">' +
+        '<div class="label">' + t('totalQty') + '</div>' +
+        '<div class="num">' + totalQty + '</div>' +
+      '</div>' +
+      '<div class="stat-card">' +
+        '<div class="label">' + t('containersCount') + '</div>' +
+        '<div class="num">' + totalLocs + '</div>' +
+      '</div>' +
+      '<div class="stat-card">' +
+        '<div class="label">' + t('syncStatus') + '</div>' +
+        '<div class="num" style="font-size:13px; padding-top:6px;">' + t('syncActive') + '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="loc-group-title">' + t('containerDist') + '</div>' +
+    distHtml;
 }
 
 function bindItemCardClicks(){
   document.querySelectorAll('.item-card').forEach(card=>{
     card.onclick = ()=>{
-      if(window.innerWidth >= 768){ openItemDetailDesktop(card.dataset.id); }
-      else { openItemDetail(card.dataset.id); }
+      if(window.innerWidth >= 768){ window.openItemDetailDesktop(card.dataset.id); }
+      else { window.openItemDetail(card.dataset.id); }
     };
   });
 }
 function bindLocationCardClicks(){
   document.querySelectorAll('.loc-card').forEach(card=>{
     card.onclick = ()=>{
-      if(window.innerWidth >= 768){ openLocationDetailDesktop(card.dataset.id); }
-      else { openLocationDetail(card.dataset.id); }
+      if(window.innerWidth >= 768){ window.openLocationDetailDesktop(card.dataset.id); }
+      else { window.openLocationDetail(card.dataset.id); }
     };
   });
 }
 
-function openOverlay(html){
+window.openOverlay = function(html){
   const root=document.getElementById('overlayRoot');
-  root.innerHTML = `<div class="overlay" id="ovBg"><div class="sheet">${html}</div></div>`;
-  document.getElementById('ovBg').onclick = e=>{ if(e.target.id==='ovBg') closeOverlay(); };
-}
-function closeOverlay(){
+  root.innerHTML = '<div class="overlay" id="ovBg"><div class="sheet">' + html + '</div></div>';
+  document.getElementById('ovBg').onclick = e=>{ if(e.target.id==='ovBg') window.closeOverlay(); };
+};
+
+window.closeOverlay = function(){
   document.getElementById('overlayRoot').innerHTML='';
   state.photosDraft=[];
   state.matchedExistingItem=null;
-}
+};
 
 window.openCreateMenu = function(){
-  openOverlay(`
-    <div class="sheet-header"><h2>${t('createNew')}</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
-    <div class="action-choice">
-      <button onclick="openItemForm(null)"><span class="ic">🗂️</span>${t('newItem')}</button>
-      <button onclick="openContainerForm(null)"><span class="ic">🏷️</span>${t('newContainer')}</button>
-    </div>
-  `);
+  const html = '<div class="sheet-header"><h2>' + t('createNew') + '</h2><button class="close-btn" onclick="window.closeOverlay()">✕</button></div>' +
+    '<div class="action-choice">' +
+      '<button onclick="window.openItemForm(null)"><span class="ic">🗂️</span>' + t('newItem') + '</button>' +
+      '<button onclick="window.openContainerForm(null)"><span class="ic">🏷️</span>' + t('newContainer') + '</button>' +
+    '</div>';
+  window.openOverlay(html);
 };
 
 window.openContainerForm = function(existing){
   const currentType = existing ? existing.type : 'location';
 
-  openOverlay(`
-    <div class="sheet-header"><h2>${existing?t('editContainer'):t('newContainer')}</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
-    <label>Name</label>
-    <input type="text" id="conName" placeholder="${t('containerNamePlaceholder')}" value="${existing?escapeAttr(existing.name):''}">
-    <label>Type (Hierarchy)</label>
-    <select id="conType" onchange="updateParentOptionsForContainerType(this.value)">
-      <option value="location" ${currentType==='location'?'selected':''}>🏠 Location</option>
-      <option value="shelf" ${currentType==='shelf'?'selected':''}>📚 Shelf</option>
-      <option value="box" ${currentType==='box'?'selected':''}>📦 Box</option>
-      <option value="drawer" ${currentType==='drawer'?'selected':''}>🗄️ Drawer</option>
-      <option value="cabinet" ${currentType==='cabinet'?'selected':''}>🚪 Cabinet</option>
-    </select>
-    <div id="parentContainerWrapper" style="${currentType==='location'?'display:none;':''}">
-      <label>Parent Container</label>
-      <select id="conParent"></select>
-    </div>
-    <label>Notes (Optional)</label>
-    <textarea id="conNote" placeholder="${t('notesPlaceholder')}">${existing?escapeHtml(existing.note||''):''}</textarea>
-    <button class="btn-primary" id="saveConBtn">${existing?t('saveChanges'):t('create')}</button>
-    ${existing?`<button class="btn-danger" id="delConBtn">${t('deleteContainer')}</button>`:''}
-  `);
+  const titleText = existing ? t('editContainer') : t('newContainer');
+  const saveText = existing ? t('saveChanges') : t('create');
+  const delBtnHtml = existing ? '<button class="btn-danger" id="delConBtn">' + t('deleteContainer') + '</button>' : '';
 
-  window.updateParentOptionsForContainerType = (typeVal) => {
+  const html = '<div class="sheet-header"><h2>' + titleText + '</h2><button class="close-btn" onclick="window.closeOverlay()">✕</button></div>' +
+    '<label>Name</label>' +
+    '<input type="text" id="conName" placeholder="' + t('containerNamePlaceholder') + '" value="' + (existing?escapeAttr(existing.name):'') + '">' +
+    '<label>Type (Hierarchy)</label>' +
+    '<select id="conType" onchange="window.updateParentOptionsForContainerType(this.value)">' +
+      '<option value="location" ' + (currentType==='location'?'selected':'') + '>🏠 Location</option>' +
+      '<option value="shelf" ' + (currentType==='shelf'?'selected':'') + '>📚 Shelf</option>' +
+      '<option value="box" ' + (currentType==='box'?'selected':'') + '>📦 Box</option>' +
+      '<option value="drawer" ' + (currentType==='drawer'?'selected':'') + '>🗄️ Drawer</option>' +
+      '<option value="cabinet" ' + (currentType==='cabinet'?'selected':'') + '>🚪 Cabinet</option>' +
+    '</select>' +
+    '<div id="parentContainerWrapper" style="' + (currentType==='location'?'display:none;':'') + '">' +
+      '<label>Parent Container</label>' +
+      '<select id="conParent"></select>' +
+    '</div>' +
+    '<label>Notes (Optional)</label>' +
+    '<textarea id="conNote" placeholder="' + t('notesPlaceholder') + '">' + (existing?escapeHtml(existing.note||''):'') + '</textarea>' +
+    '<button class="btn-primary" id="saveConBtn">' + saveText + '</button>' +
+    delBtnHtml;
+
+  window.openOverlay(html);
+
+  window.updateParentOptionsForContainerType = function(typeVal) {
     const wrapper = document.getElementById('parentContainerWrapper');
     const parentSel = document.getElementById('conParent');
     if(typeVal === 'location'){
@@ -1060,11 +1063,11 @@ window.openContainerForm = function(existing){
       } else {
         validParents = state.locations.filter(l => (!existing || l.id !== existing.id) && (l.type === 'location' || l.type === 'shelf'));
       }
-      parentSel.innerHTML = '<option value="">Select parent...</option>' + validParents.map(l=>`<option value="${l.id}" ${existing&&existing.parentId===l.id?'selected':''}>${CONTAINER_TYPES[l.type].icon} ${escapeHtml(containerPath(l.id))}</option>`).join('');
+      parentSel.innerHTML = '<option value="">Select parent...</option>' + validParents.map(l=>'<option value="' + l.id + '" ' + (existing&&existing.parentId===l.id?'selected':'') + '>' + CONTAINER_TYPES[l.type].icon + ' ' + escapeHtml(containerPath(l.id)) + '</option>').join('');
     }
   };
 
-  updateParentOptionsForContainerType(currentType);
+  window.updateParentOptionsForContainerType(currentType);
 
   document.getElementById('saveConBtn').onclick = ()=> saveContainerFromForm(existing);
   if(existing) document.getElementById('delConBtn').onclick = ()=> deleteContainerFlow(existing.id);
@@ -1089,7 +1092,7 @@ async function saveContainerFromForm(existing){
   }
   const ok = await saveLocations(state.locations);
   if(!ok){ toast('Save failed'); return; }
-  closeOverlay();
+  window.closeOverlay();
   renderSearchRow(); renderMain();
   toast(t('containerSaved'));
 }
@@ -1101,109 +1104,119 @@ async function deleteContainerFlow(id){
   if(!confirm(t('confirmDeleteContainer'))) return;
   state.locations = state.locations.filter(l=>l.id!==id);
   await saveLocations(state.locations);
-  closeOverlay();
+  window.closeOverlay();
   renderSearchRow(); renderMain();
   toast(t('containerDeleted'));
 }
 
-async function openLocationDetailDesktop(id){
+window.openLocationDetailDesktop = async function(id){
   const loc = containerById(id);
   if(!loc) return;
   const items = state.itemsIndex.filter(i=>i.locationId===id);
   const children = state.locations.filter(l=>l.parentId===id);
-  const pane = document.getElementById('desktopDetailPane');
-  pane.innerHTML = `
-    <div class="sheet-header"><h2>${CONTAINER_TYPES[loc.type].icon} ${escapeHtml(loc.name)}</h2></div>
-    ${loc.parentId?`<div class="loc-path" style="margin-bottom:10px;">In ${escapeHtml(containerPath(loc.parentId))}</div>`:''}
-    ${loc.note?`<p class="note-block" style="margin-top:0;">${escapeHtml(loc.note)}</p>`:''}
-    ${children.length ? `<label style="margin-top:10px;">Sub-containers (${children.length})</label>
-      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
-        ${children.map(c=>`<span class="tag-chip">${CONTAINER_TYPES[c.type].icon} ${escapeHtml(c.name)}</span>`).join('')}
-      </div>`:''}
-    <label style="margin-top:14px;">Contained Items (${items.length})</label>
-    ${items.length? items.map(it=>`
-      <div class="item-card" data-id="${it.id}" style="margin-bottom:8px;">
-        ${it.thumb?`<img class="item-thumb" src="${it.thumb}">`:`<div class="item-thumb">${CONTAINER_TYPES[loc.type].icon}</div>`}
-        <div class="item-info"><p class="name">${escapeHtml(it.name)}</p><span class="qty-badge">×${it.qty??1}</span></div>
-      </div>`).join('') : `<p class="hint">This container is currently empty</p>`}
-    <button class="btn-secondary" id="editLocDesktopBtn" style="margin-top:14px;">${t('editContainer')}</button>
-  `;
-  document.getElementById('editLocDesktopBtn').onclick = ()=> openContainerForm(loc);
-  pane.querySelectorAll('.item-card').forEach(c=> c.onclick = ()=> openItemDetailDesktop(c.dataset.id));
-}
+  
+  const pathHtml = loc.parentId ? '<div class="loc-path" style="margin-bottom:10px;">In ' + escapeHtml(containerPath(loc.parentId)) + '</div>' : '';
+  const noteHtml = loc.note ? '<p class="note-block" style="margin-top:0;">' + escapeHtml(loc.note) + '</p>' : '';
+  
+  const childTags = children.map(c=>'<span class="tag-chip">' + CONTAINER_TYPES[c.type].icon + ' ' + escapeHtml(c.name) + '</span>').join('');
+  const childrenHtml = children.length ? '<label style="margin-top:10px;">Sub-containers (' + children.length + ')</label><div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">' + childTags + '</div>' : '';
+  
+  const itemsHtml = items.length ? items.map(it=>{
+      const thb = it.thumb ? '<img class="item-thumb" src="' + it.thumb + '">' : '<div class="item-thumb">' + CONTAINER_TYPES[loc.type].icon + '</div>';
+      return '<div class="item-card" data-id="' + it.id + '" style="margin-bottom:8px;">' + thb + '<div class="item-info"><p class="name">' + escapeHtml(it.name) + '</p><span class="qty-badge">×' + (it.qty??1) + '</span></div></div>';
+  }).join('') : '<p class="hint">This container is currently empty</p>';
 
-function openLocationDetail(id){
+  const pane = document.getElementById('desktopDetailPane');
+  pane.innerHTML = '<div class="sheet-header"><h2>' + CONTAINER_TYPES[loc.type].icon + ' ' + escapeHtml(loc.name) + '</h2></div>' +
+    pathHtml +
+    noteHtml +
+    childrenHtml +
+    '<label style="margin-top:14px;">Contained Items (' + items.length + ')</label>' +
+    itemsHtml +
+    '<button class="btn-secondary" id="editLocDesktopBtn" style="margin-top:14px;">' + t('editContainer') + '</button>';
+
+  document.getElementById('editLocDesktopBtn').onclick = ()=> window.openContainerForm(loc);
+  pane.querySelectorAll('.item-card').forEach(c=> c.onclick = ()=> window.openItemDetailDesktop(c.dataset.id));
+};
+
+window.openLocationDetail = function(id){
   const loc = containerById(id);
   if(!loc) return;
   const items = state.itemsIndex.filter(i=>i.locationId===id);
   const children = state.locations.filter(l=>l.parentId===id);
-  openOverlay(`
-    <div class="sheet-header"><h2>${CONTAINER_TYPES[loc.type].icon} ${escapeHtml(loc.name)}</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
-    ${loc.parentId?`<div class="loc-path" style="margin-bottom:10px;">In ${escapeHtml(containerPath(loc.parentId))}</div>`:''}
-    ${loc.note?`<p class="note-block" style="margin-top:0;">${escapeHtml(loc.note)}</p>`:''}
-    ${children.length ? `<label style="margin-top:10px;">Sub-containers (${children.length})</label>
-      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
-        ${children.map(c=>`<span class="tag-chip">${CONTAINER_TYPES[c.type].icon} ${escapeHtml(c.name)}</span>`).join('')}
-      </div>`:''}
-    <label style="margin-top:6px;">Contained Items (${items.length})</label>
-    ${items.length? items.map(it=>`
-      <div class="item-card" data-id="${it.id}" style="margin-bottom:8px;">
-        ${it.thumb?`<img class="item-thumb" src="${it.thumb}">`:`<div class="item-thumb">${CONTAINER_TYPES[loc.type].icon}</div>`}
-        <div class="item-info"><p class="name">${escapeHtml(it.name)}</p><span class="qty-badge">×${it.qty??1}</span></div>
-      </div>`).join('') : `<p class="hint">This container is currently empty</p>`}
-    <button class="btn-primary" id="editLocBtn">${t('editContainer')}</button>
-  `;
-  document.getElementById('editLocBtn').onclick = ()=> openContainerForm(loc);
-  document.querySelectorAll('#overlayRoot .item-card').forEach(c=> c.onclick = ()=> openItemDetail(c.dataset.id));
-}
+  
+  const pathHtml = loc.parentId ? '<div class="loc-path" style="margin-bottom:10px;">In ' + escapeHtml(containerPath(loc.parentId)) + '</div>' : '';
+  const noteHtml = loc.note ? '<p class="note-block" style="margin-top:0;">' + escapeHtml(loc.note) + '</p>' : '';
+  
+  const childTags = children.map(c=>'<span class="tag-chip">' + CONTAINER_TYPES[c.type].icon + ' ' + escapeHtml(c.name) + '</span>').join('');
+  const childrenHtml = children.length ? '<label style="margin-top:10px;">Sub-containers (' + children.length + ')</label><div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">' + childTags + '</div>' : '';
+  
+  const itemsHtml = items.length ? items.map(it=>{
+      const thb = it.thumb ? '<img class="item-thumb" src="' + it.thumb + '">' : '<div class="item-thumb">' + CONTAINER_TYPES[loc.type].icon + '</div>';
+      return '<div class="item-card" data-id="' + it.id + '" style="margin-bottom:8px;">' + thb + '<div class="item-info"><p class="name">' + escapeHtml(it.name) + '</p><span class="qty-badge">×' + (it.qty??1) + '</span></div></div>';
+  }).join('') : '<p class="hint">This container is currently empty</p>';
+
+  const html = '<div class="sheet-header"><h2>' + CONTAINER_TYPES[loc.type].icon + ' ' + escapeHtml(loc.name) + '</h2><button class="close-btn" onclick="window.closeOverlay()">✕</button></div>' +
+    pathHtml +
+    noteHtml +
+    childrenHtml +
+    '<label style="margin-top:6px;">Contained Items (' + items.length + ')</label>' +
+    itemsHtml +
+    '<button class="btn-primary" id="editLocBtn">' + t('editContainer') + '</button>';
+
+  window.openOverlay(html);
+  document.getElementById('editLocBtn').onclick = ()=> window.openContainerForm(loc);
+  document.querySelectorAll('#overlayRoot .item-card').forEach(c=> c.onclick = ()=> window.openItemDetail(c.dataset.id));
+};
 
 window.openItemForm = function(existingIndexEntry){
   if(state.locations.length===0){
     toast(t('createLocFirst'));
-    openContainerForm(null);
+    window.openContainerForm(null);
     return;
   }
   state.photosDraft = [];
   state.matchedExistingItem = null;
-  const locOptions = state.locations.map(l=>`<option value="${l.id}">${CONTAINER_TYPES[l.type].icon} ${escapeHtml(containerPath(l.id))}</option>`).join('');
+  const locOptions = state.locations.map(l=>'<option value="' + l.id + '">' + CONTAINER_TYPES[l.type].icon + ' ' + escapeHtml(containerPath(l.id)) + '</option>').join('');
 
-  openOverlay(`
-    <div class="sheet-header"><h2>${existingIndexEntry?t('editItem'):t('newItem')}</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
-    <label>${t('photoLabel')}</label>
-    <div class="photo-manager" id="photoManagerContainer">
-      <label class="add-photo-btn" for="photoInput">
-        <span style="font-size:18px;">＋</span>${t('addPhoto')}
-      </label>
-      <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none;">
-    </div>
-    <div id="aiNameStatus" class="hint" style="color:var(--accent);"></div>
-    <div id="locationSuggestionBox" class="hint" style="background:var(--card); border:1px solid var(--line); padding:10px; border-radius:8px; margin-top:8px; display:none;"></div>
-    <label style="display:flex; justify-content:space-between; align-items:center;">
-      <span>Name</span>
-      <button type="button" id="scanBarcodeBtn" class="btn-secondary" style="padding:2px 8px; font-size:11px;">${t('scanBarcode')}</button>
-    </label>
-    <input type="text" id="itName" placeholder="${t('itemNamePlaceholder')}">
-    <div id="scannerContainer" style="display:none; margin-top:10px;"><div id="reader" style="width:100%;"></div><button type="button" class="btn-secondary" id="closeScannerBtn" style="margin-top:6px; width:100%;">${t('closeCamera')}</button></div>
-    <div class="row2">
-      <div><label>${t('quantityToAdd')}</label><input type="number" id="itQty" min="1" value="1"></div>
-      <div>
-        <label>${t('categoryOptional')}</label>
-        <input type="text" id="itCategory" list="catList" placeholder="Tools, Electronics...">
-        <datalist id="catList"><option value="Tools"><option value="Electronics"><option value="Stationery"><option value="Apparel"><option value="Kitchen"><option value="Misc"></datalist>
-      </div>
-    </div>
-    <label>${t('placementLabel')}</label>
-    <select id="itLocation">${locOptions}</select>
-    <label>${t('tagsOptional')}</label>
-    <input type="text" id="itTags" placeholder="e.g. frequent, camping">
-    <label>${t('notesSpec')}</label>
-    <textarea id="itNote" placeholder="Any additional notes..."></textarea>
-    <button class="btn-primary" id="saveItemBtn">${existingIndexEntry?t('saveChanges'):t('createAddItem')}</button>
-    ${existingIndexEntry?`<button class="btn-danger" id="delItemBtn">${t('deleteItem')}</button>`:''}
-  `);
+  const titleText = existingIndexEntry ? t('editItem') : t('newItem');
+  const saveText = existingIndexEntry ? t('saveChanges') : t('createAddItem');
+  const delBtnHtml = existingIndexEntry ? '<button class="btn-danger" id="delItemBtn">' + t('deleteItem') + '</button>' : '';
 
-  document.getElementById('photoInput').onchange = handlePhotoInput;
-  document.getElementById('scanBarcodeBtn').onclick = startBarcodeScanner;
+  const html = '<div class="sheet-header"><h2>' + titleText + '</h2><button class="close-btn" onclick="window.closeOverlay()">✕</button></div>' +
+    '<label>' + t('photoLabel') + '</label>' +
+    '<div class="photo-manager" id="photoManagerContainer"></div>' +
+    '<div id="aiNameStatus" class="hint" style="color:var(--accent);"></div>' +
+    '<div id="locationSuggestionBox" class="hint" style="background:var(--card); border:1px solid var(--line); padding:10px; border-radius:8px; margin-top:8px; display:none;"></div>' +
+    '<label style="display:flex; justify-content:space-between; align-items:center;">' +
+      '<span>Name</span>' +
+      '<button type="button" id="scanBarcodeBtn" class="btn-secondary" style="padding:2px 8px; font-size:11px;">' + t('scanBarcode') + '</button>' +
+    '</label>' +
+    '<input type="text" id="itName" placeholder="' + t('itemNamePlaceholder') + '">' +
+    '<div id="scannerContainer" style="display:none; margin-top:10px;"><div id="reader" style="width:100%;"></div><button type="button" class="btn-secondary" id="closeScannerBtn" style="margin-top:6px; width:100%;">' + t('closeCamera') + '</button></div>' +
+    '<div class="row2">' +
+      '<div><label>' + t('quantityToAdd') + '</label><input type="number" id="itQty" min="1" value="1"></div>' +
+      '<div>' +
+        '<label>' + t('categoryOptional') + '</label>' +
+        '<input type="text" id="itCategory" list="catList" placeholder="Tools, Electronics...">' +
+        '<datalist id="catList"><option value="Tools"><option value="Electronics"><option value="Stationery"><option value="Apparel"><option value="Kitchen"><option value="Misc"></datalist>' +
+      '</div>' +
+    '</div>' +
+    '<label>' + t('placementLabel') + '</label>' +
+    '<select id="itLocation">' + locOptions + '</select>' +
+    '<label>' + t('tagsOptional') + '</label>' +
+    '<input type="text" id="itTags" placeholder="e.g. frequent, camping">' +
+    '<label>' + t('notesSpec') + '</label>' +
+    '<textarea id="itNote" placeholder="Any additional notes..."></textarea>' +
+    '<button class="btn-primary" id="saveItemBtn">' + saveText + '</button>' +
+    delBtnHtml;
+
+  window.openOverlay(html);
+  
+  // 渲染相片區域
+  renderPhotoManager();
+
+  document.getElementById('scanBarcodeBtn').onclick = window.startBarcodeScanner;
   document.getElementById('saveItemBtn').onclick = ()=> saveItemFromForm(existingIndexEntry);
 
   if(existingIndexEntry){
@@ -1229,31 +1242,29 @@ window.openItemForm = function(existingIndexEntry){
 
 function renderPhotoManager(){
   const container = document.getElementById('photoManagerContainer');
-  const addBtnHTML = `
-    <label class="add-photo-btn" for="photoInput">
-      <span style="font-size:18px;">＋</span>${t('addPhoto')}
-    </label>
-    <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none;">
-  `;
+  const addBtnHTML = '<label class="add-photo-btn" for="photoInput">' +
+      '<span style="font-size:18px;">＋</span>' + t('addPhoto') +
+    '</label>' +
+    '<input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none;">';
   
-  let thumbsHTML = state.photosDraft.map((p, idx)=>`
-    <div class="photo-thumb-item">
-      <img src="${p.thumb}">
-      <button type="button" class="del-photo" onclick="removePhotoDraft(${idx})">✕</button>
-    </div>
-  `).join('');
+  let thumbsHTML = state.photosDraft.map((p, idx)=>
+    '<div class="photo-thumb-item">' +
+      '<img src="' + p.thumb + '">' +
+      '<button type="button" class="del-photo" onclick="window.removePhotoDraft(' + idx + ')">✕</button>' +
+    '</div>'
+  ).join('');
 
   container.innerHTML = thumbsHTML + addBtnHTML;
-  document.getElementById('photoInput').onchange = handlePhotoInput;
+  document.getElementById('photoInput').onchange = window.handlePhotoInput;
 }
 
-window.removePhotoDraft = (idx) => {
+window.removePhotoDraft = function(idx) {
   state.photosDraft.splice(idx, 1);
   renderPhotoManager();
 };
 
 let html5QrCode = null;
-function startBarcodeScanner(){
+window.startBarcodeScanner = function(){
   const container = document.getElementById('scannerContainer');
   container.style.display = 'block';
   html5QrCode = new Html5Qrcode("reader");
@@ -1261,8 +1272,8 @@ function startBarcodeScanner(){
     { facingMode: "environment" },
     { fps: 10, qrbox: { width: 250, height: 150 } },
     (decodedText) => {
-      document.getElementById('itName').value = `Barcode: ${decodedText}`;
-      stopBarcodeScanner();
+      document.getElementById('itName').value = "Barcode: " + decodedText;
+      window.stopBarcodeScanner();
       toast(t('barcodeSuccess'));
     },
     (errorMessage) => {}
@@ -1270,10 +1281,10 @@ function startBarcodeScanner(){
     toast(t('camError'));
     container.style.display = 'none';
   });
-  document.getElementById('closeScannerBtn').onclick = stopBarcodeScanner;
-}
+  document.getElementById('closeScannerBtn').onclick = window.stopBarcodeScanner;
+};
 
-function stopBarcodeScanner(){
+window.stopBarcodeScanner = function(){
   if(html5QrCode){
     html5QrCode.stop().then(()=>{
       document.getElementById('scannerContainer').style.display = 'none';
@@ -1283,9 +1294,9 @@ function stopBarcodeScanner(){
   } else {
     document.getElementById('scannerContainer').style.display = 'none';
   }
-}
+};
 
-async function handlePhotoInput(e){
+window.handlePhotoInput = async function(e){
   const file = e.target.files[0];
   if(!file) return;
   const aiStatus = document.getElementById('aiNameStatus');
@@ -1317,24 +1328,24 @@ async function handlePhotoInput(e){
       document.getElementById('itLocation').value = fullMatchedRecord.locationId || '';
 
       suggestionBox.style.display = 'block';
-      suggestionBox.innerHTML = `${t('smartGuidance')}<b>${escapeHtml(suggestedPlacementName)}</b> (Quantity will be accumulated).`;
+      suggestionBox.innerHTML = t('smartGuidance') + '<b>' + escapeHtml(suggestedPlacementName) + '</b> (Quantity will be accumulated).';
       
-      aiStatus.textContent = `🎯 Recognized identical item: ${fullMatchedRecord.name}`;
+      aiStatus.textContent = "🎯 Recognized identical item: " + fullMatchedRecord.name;
       toast('Identical item matched');
       return;
     }
 
     state.photosDraft.push(processed);
     renderPhotoManager();
-    aiStatus.textContent = `✨ Photo added successfully!`;
+    aiStatus.textContent = "✨ Photo added successfully!";
   }catch(err){
     toast(t('imgFailed'));
     aiStatus.textContent = '';
   }
-}
+};
 
 async function saveItemFromForm(existingIndexEntry){
-  stopBarcodeScanner();
+  window.stopBarcodeScanner();
   const name = document.getElementById('itName').value.trim();
   if(!name){ toast('Please enter item name'); return; }
   const addQty = parseFloat(document.getElementById('itQty').value) || 1;
@@ -1366,9 +1377,9 @@ async function saveItemFromForm(existingIndexEntry){
     if(idx>=0) state.itemsIndex[idx]=indexEntry; else state.itemsIndex.push(indexEntry);
     await saveItemsIndex(state.itemsIndex);
 
-    closeOverlay();
+    window.closeOverlay();
     renderSearchRow(); renderMain();
-    toast(`${t('qtyAccumulated')}${targetItem.qty}`);
+    toast(t('qtyAccumulated') + targetItem.qty);
     return;
   }
 
@@ -1387,7 +1398,7 @@ async function saveItemFromForm(existingIndexEntry){
   state.itemsIndex.push(indexEntry);
   await saveItemsIndex(state.itemsIndex);
 
-  closeOverlay();
+  window.closeOverlay();
   renderSearchRow(); renderMain();
   toast(t('itemCreated'));
 }
@@ -1397,7 +1408,7 @@ async function deleteItemFlow(id){
   state.itemsIndex = state.itemsIndex.filter(i=>i.id!==id);
   await saveItemsIndex(state.itemsIndex);
   await deleteItemRecord(id);
-  closeOverlay();
+  window.closeOverlay();
   renderSearchRow(); renderMain();
   toast(t('itemDeleted'));
 }
@@ -1409,52 +1420,62 @@ window.openItemDetailDesktop = async function(id){
   if(!full) return;
   const t_type = containerTypeOf(full.locationId);
   const tinfo = CONTAINER_TYPES[t_type]||CONTAINER_TYPES.location;
+  
   const photoList = (full.photos && full.photos.length > 0) 
-    ? full.photos.map(p=>`<img class="detail-photo" src="${p.full}">`).join('')
-    : (full.photo ? `<img class="detail-photo" src="${full.photo}">` : `<div class="detail-photo">${tinfo.icon}</div>`);
+    ? full.photos.map(p=>'<img class="detail-photo" src="' + p.full + '">').join('')
+    : (full.photo ? '<img class="detail-photo" src="' + full.photo + '">' : '<div class="detail-photo">' + tinfo.icon + '</div>');
+
+  const catHtml = full.category ? '<div class="detail-row"><span class="k">' + t('category') + '</span><span class="v">' + escapeHtml(full.category) + '</span></div>' : '';
+  const tagsHtml = full.tags ? '<div style="margin-top:10px;">' + full.tags.split(',').map(item=>item.trim()).filter(Boolean).map(item=>'<span class="tag-chip">' + escapeHtml(item) + '</span>').join('') + '</div>' : '';
+  const noteHtml = full.note ? '<div class="note-block">' + escapeHtml(full.note) + '</div>' : '';
+  const placementHtml = '<span class="tag-badge '+tinfo.cls+'">' + escapeHtml(containerPath(full.locationId)||'Unassigned') + '</span>';
 
   const pane = document.getElementById('desktopDetailPane');
-  pane.innerHTML = `
-    <div class="sheet-header"><h2>${t('itemDetails')}</h2></div>
-    <div class="detail-photo-slider">${photoList}</div>
-    <p class="detail-title">${escapeHtml(full.name)}</p>
-    <div class="detail-row"><span class="k">${t('quantity')}</span><span class="v">${full.qty ?? 1}</span></div>
-    ${full.category?`<div class="detail-row"><span class="k">${t('category')}</span><span class="v">${escapeHtml(full.category)}</span></div>`:''}
-    <div class="detail-row"><span class="k">${t('placement')}</span><span class="v"><span class="tag-badge ${tinfo.cls}">${escapeHtml(containerPath(full.locationId)||'Unassigned')}</span></span></div>
-    <div class="detail-row"><span class="k">${t('updated')}</span><span class="v">${new Date(full.updatedAt).toLocaleString()}</span></div>
-    ${full.tags ? `<div style="margin-top:10px;">${full.tags.split(',').map(item=>item.trim()).filter(Boolean).map(item=>`<span class="tag-chip">${escapeHtml(item)}</span>`).join('')}</div>` : ''}
-    ${full.note ? `<div class="note-block">${escapeHtml(full.note)}</div>` : ''}
-    <button class="btn-primary" id="editItemDesktopBtn" style="margin-top:14px;">${t('editItem')}</button>
-  `;
-  document.getElementById('editItemDesktopBtn').onclick = ()=> openItemForm(indexEntry);
+  pane.innerHTML = '<div class="sheet-header"><h2>' + t('itemDetails') + '</h2></div>' +
+    '<div class="detail-photo-slider">' + photoList + '</div>' +
+    '<p class="detail-title">' + escapeHtml(full.name) + '</p>' +
+    '<div class="detail-row"><span class="k">' + t('quantity') + '</span><span class="v">' + (full.qty ?? 1) + '</span></div>' +
+    catHtml +
+    '<div class="detail-row"><span class="k">' + t('placement') + '</span><span class="v">' + placementHtml + '</span></div>' +
+    '<div class="detail-row"><span class="k">' + t('updated') + '</span><span class="v">' + new Date(full.updatedAt).toLocaleString() + '</span></div>' +
+    tagsHtml +
+    noteHtml +
+    '<button class="btn-primary" id="editItemDesktopBtn" style="margin-top:14px;">' + t('editItem') + '</button>';
+    
+  document.getElementById('editItemDesktopBtn').onclick = ()=> window.openItemForm(indexEntry);
 };
 
 window.openItemDetail = async function(id){
   const indexEntry = state.itemsIndex.find(i=>i.id===id);
   if(!indexEntry) return;
-  openOverlay(`<div class="sheet-header"><h2>${t('itemDetails')}</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div><p class="hint"><span class="loading-dot"></span>Loading...</p>`);
+  window.openOverlay('<div class="sheet-header"><h2>' + t('itemDetails') + '</h2><button class="close-btn" onclick="window.closeOverlay()">✕</button></div><p class="hint"><span class="loading-dot"></span>Loading...</p>');
   const full = await getItem(id);
-  if(!full){ toast('Failed to load'); closeOverlay(); return; }
+  if(!full){ toast('Failed to load'); window.closeOverlay(); return; }
   const t_type = containerTypeOf(full.locationId);
   const tinfo = CONTAINER_TYPES[t_type]||CONTAINER_TYPES.location;
 
   const photoList = (full.photos && full.photos.length > 0) 
-    ? full.photos.map(p=>`<img class="detail-photo" src="${p.full}">`).join('')
-    : (full.photo ? `<img class="detail-photo" src="${full.photo}">` : `<div class="detail-photo">${tinfo.icon}</div>`);
+    ? full.photos.map(p=>'<img class="detail-photo" src="' + p.full + '">').join('')
+    : (full.photo ? '<img class="detail-photo" src="' + full.photo + '">' : '<div class="detail-photo">' + tinfo.icon + '</div>');
 
-  document.querySelector('#overlayRoot .sheet').innerHTML = `
-    <div class="sheet-header"><h2>${t('itemDetails')}</h2><button class="close-btn" onclick="closeOverlay()">✕</button></div>
-    <div class="detail-photo-slider">${photoList}</div>
-    <p class="detail-title">${escapeHtml(full.name)}</p>
-    <div class="detail-row"><span class="k">${t('quantity')}</span><span class="v">${full.qty ?? 1}</span></div>
-    ${full.category?`<div class="detail-row"><span class="k">${t('category')}</span><span class="v">${escapeHtml(full.category)}</span></div>`:''}
-    <div class="detail-row"><span class="k">${t('placement')}</span><span class="v"><span class="tag-badge ${tinfo.cls}">${escapeHtml(containerPath(full.locationId)||'Unassigned')}</span></span></div>
-    <div class="detail-row"><span class="k">${t('updated')}</span><span class="v">${new Date(full.updatedAt).toLocaleString()}</span></div>
-    ${full.tags ? `<div style="margin-top:10px;">${full.tags.split(',').map(item=>item.trim()).filter(Boolean).map(item=>`<span class="tag-chip">${escapeHtml(item)}</span>`).join('')}</div>` : ''}
-    ${full.note ? `<div class="note-block">${escapeHtml(full.note)}</div>` : ''}
-    <button class="btn-primary" id="editItemBtn">${t('editItem')}</button>
-  `;
-  document.getElementById('editItemBtn').onclick = ()=> openItemForm(indexEntry);
+  const catHtml = full.category ? '<div class="detail-row"><span class="k">' + t('category') + '</span><span class="v">' + escapeHtml(full.category) + '</span></div>' : '';
+  const tagsHtml = full.tags ? '<div style="margin-top:10px;">' + full.tags.split(',').map(item=>item.trim()).filter(Boolean).map(item=>'<span class="tag-chip">' + escapeHtml(item) + '</span>').join('') + '</div>' : '';
+  const noteHtml = full.note ? '<div class="note-block">' + escapeHtml(full.note) + '</div>' : '';
+  const placementHtml = '<span class="tag-badge '+tinfo.cls+'">' + escapeHtml(containerPath(full.locationId)||'Unassigned') + '</span>';
+
+  const html = '<div class="sheet-header"><h2>' + t('itemDetails') + '</h2><button class="close-btn" onclick="window.closeOverlay()">✕</button></div>' +
+    '<div class="detail-photo-slider">' + photoList + '</div>' +
+    '<p class="detail-title">' + escapeHtml(full.name) + '</p>' +
+    '<div class="detail-row"><span class="k">' + t('quantity') + '</span><span class="v">' + (full.qty ?? 1) + '</span></div>' +
+    catHtml +
+    '<div class="detail-row"><span class="k">' + t('placement') + '</span><span class="v">' + placementHtml + '</span></div>' +
+    '<div class="detail-row"><span class="k">' + t('updated') + '</span><span class="v">' + new Date(full.updatedAt).toLocaleString() + '</span></div>' +
+    tagsHtml +
+    noteHtml +
+    '<button class="btn-primary" id="editItemBtn">' + t('editItem') + '</button>';
+
+  document.querySelector('#overlayRoot .sheet').innerHTML = html;
+  document.getElementById('editItemBtn').onclick = ()=> window.openItemForm(indexEntry);
 };
 
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
