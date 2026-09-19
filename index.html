@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <!-- IDENTIFIER: HOMESTOCK-GITHUB-DEPLOY -->
-<!-- VERSION: r26.0916.131357 -->
+<!-- VERSION: r26.0916.130419 -->
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -292,7 +292,7 @@
     <div class="auth-icon">📦</div>
     <div style="display:inline-block; text-align:center; margin-bottom:4px;">
       <h1 id="tLoginTitle">家庫 HomeStock</h1>
-      <div style="font-size:12px; font-weight:700; color:var(--ink); font-family:'Space Mono',monospace; margin-top:4px;" id="loginVersionTag">r26.0916.131357</div>
+      <div style="font-size:12px; font-weight:700; color:var(--ink); font-family:'Space Mono',monospace; margin-top:4px;" id="loginVersionTag">r26.0916.130419</div>
     </div>
     <p style="margin-top:12px;" id="tLoginDesc">把你家的庫存資料，安全地存在你自己的 Google Drive 裡，換手機、換裝置都同步。</p>
     <button id="authSigninBtn" class="google-btn">🔐 <span id="tLoginBtn">使用 Google 帳號登入</span></button>
@@ -305,7 +305,7 @@
 <div id="app" style="display:none;">
   <header class="top">
     <div class="brand">
-      <h1 id="tAppTitle">家庫 HomeStock <span class="version-tag mono" id="versionTag">r26.0916.131357</span></h1>
+      <h1 id="tAppTitle">家庫 HomeStock <span class="version-tag mono" id="versionTag">r26.0916.130419</span></h1>
       <div class="header-tools">
         <button class="lang-btn" id="appLangBtn">EN</button>
         <span class="count mono" id="headerCount"></span>
@@ -328,15 +328,9 @@
 <div id="overlayRoot"></div>
 
 <script>
-const APP_VERSION = 'r26.0916.131357';
+const APP_VERSION = 'r26.0916.130419';
 
-// 加上 try-catch 防護：若瀏覽器阻擋本地儲存，則直接預設使用中文，避免腳本崩潰
-let currentLang = 'zh';
-try {
-  currentLang = localStorage.getItem('homestock_lang') || 'zh';
-} catch (e) {
-  console.warn("Storage access blocked by browser. Using default language.");
-}
+let currentLang = localStorage.getItem('homestock_lang') || 'zh';
 
 const i18n = {
   zh: {
@@ -489,11 +483,7 @@ function t(key){
 
 function toggleLanguage(){
   currentLang = currentLang === 'zh' ? 'en' : 'zh';
-  try {
-    localStorage.setItem('homestock_lang', currentLang);
-  } catch (e) {
-    // 忽略儲存錯誤
-  }
+  localStorage.setItem('homestock_lang', currentLang);
   updateStaticTexts();
   renderSearchRow();
   renderMain();
@@ -824,9 +814,9 @@ function showVersionLog(){
 }
 
 const VERSION_LOG = [
-  { v: APP_VERSION, note:'Added defensive try-catch block around localStorage to prevent script crash from browser tracking prevention.' },
-  { v:'r26.0916.124924', note:'Fixed UI thread block caused by Google API timeout, ensuring buttons remain responsive.' },
+  { v: APP_VERSION, note:'Fixed UI thread block caused by Google API timeout, ensuring buttons remain responsive.' },
   { v:'r26.0916.124512', note:'Fixed regex mismatch by enforcing static timestamp format.' },
+  { v:'r26.0916.123800', note:'Fixed event bindings for sign-in and language toggle buttons.' },
 ];
 
 function renderSearchRow(){
@@ -953,7 +943,7 @@ function renderStatsView(){
     <div class="loc-group-title">${t('containerDist')}</div>
     ${state.locations.map(l=>{
       const count = state.itemsIndex.filter(i=>i.locationId===l.id).length;
-      return `<div class="detail-row"><span class="k">${CONTAINER_TYPES[l.type]?.icon || '🏠'} ${escapeHtml(l.name)}</span><span class="v">${count} items</span></div>`;
+      return `<div class="detail-row"><span class="k">${CONTAINER_TYPES[l.type]?.icon \vert{}\vert{} '🏠'} ${escapeHtml(l.name)}</span><span class="v">${count} items</span></div>`;
     }).join('') || '<p class="hint">No container data available</p>'}
   `;
 }
